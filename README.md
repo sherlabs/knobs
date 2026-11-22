@@ -17,6 +17,11 @@ Touch ID), so it never stores credentials.
 
 ![UI preview](Assets/ui-preview.svg)
 
+## Download
+
+Grab the notarized zip from [Releases](https://github.com/sherlabs/glowbar/releases/latest),
+unzip, and drag GlowBar.app to Applications.
+
 ## Build
 
 Requires macOS 13+ and Xcode or the Command Line Tools (Swift 5.9+).
@@ -27,8 +32,10 @@ open build/GlowBar.app
 ```
 
 The app is menu bar only (no Dock icon). `build.sh` ad-hoc signs the bundle.
-For distribution outside your own machine, sign with a Developer ID and
-notarize it.
+
+Releases are signed with a Developer ID and notarized by Apple. To produce one
+yourself, run `Tools/notarize.sh` after `build.sh` (see the script for the
+required environment variables).
 
 ## Notes
 
