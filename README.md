@@ -15,6 +15,10 @@ sudo defaults write com.apple.CoreBrightness LEBacklightMode -int 1   # on
 GlowBar runs this through the standard macOS administrator prompt (password or
 Touch ID), so it never stores credentials.
 
+It also has a **Touch Input** switch, which flips the same setting as the Touch
+pane in System Settings (`SidecarTouchInputDisabled` in `com.apple.universalaccess`).
+No admin prompt is needed for that one.
+
 ![UI preview](Assets/ui-preview.svg)
 
 ## Download
