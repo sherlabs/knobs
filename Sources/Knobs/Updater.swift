@@ -17,21 +17,35 @@ final class Updater: ObservableObject {
         didSet { UserDefaults.standard.set(autoCheck, forKey: "autoCheckUpdates") }
     }
     private var timer: Timer?
+    private var lastCheck: Date?
+    private var started = false
 
     var currentVersion: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0" }
     var hasUpdate: Bool { if case .available = state { return true }; return false }
 
+    /// Starts background checking once per launch, independent of whether the popover is ever opened.
     func start() {
-        Task { try? await Task.sleep(nanoseconds: 4_000_000_000); if autoCheck { await check(silent: true) } }
-        timer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { [weak self] _ in
-            Task { @MainActor in if self?.autoCheck == true { await self?.check(silent: true) } }
+        guard !started else { return }
+        started = true
+        Task { try? await Task.sleep(nanoseconds: 4_000_000_000); await checkIfStale() }
+        timer = Timer.scheduledTimer(withTimeInterval: 3 * 3600, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.checkIfStale() }
         }
+    }
+
+    /// Automatic check, at most once an hour. Called at launch, every few hours, and when the popover opens.
+    func checkIfStale() async {
+        guard autoCheck else { return }
+        if case .working = state { return }
+        if let last = lastCheck, Date().timeIntervalSince(last) < 3600 { return }
+        await check(silent: true)
     }
 
     /// `silent` checks (automatic) never surface errors; only a manual check reports problems.
     func check(silent: Bool = false) async {
         if !silent { state = .checking }
         let previous = state
+        lastCheck = Date()
         do {
             var req = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.repo)/releases/latest")!)
             req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")

@@ -6,7 +6,7 @@ struct KnobsApp: App {
     @StateObject private var logo: LogoController
     @StateObject private var touch = TouchController()
     @StateObject private var fan: FanController
-    @StateObject private var updater = Updater()
+    @StateObject private var updater: Updater
     @StateObject private var monitor = MonitorController()
 
     init() {
@@ -23,6 +23,9 @@ struct KnobsApp: App {
         _helper = StateObject(wrappedValue: h)
         _logo = StateObject(wrappedValue: l)
         _fan = StateObject(wrappedValue: FanController(helper: h))
+        let u = Updater()
+        _updater = StateObject(wrappedValue: u)
+        DispatchQueue.main.async { u.start() }
         DispatchQueue.main.async { h.firstLaunchSetup() }
     }
 
@@ -31,7 +34,6 @@ struct KnobsApp: App {
             PopoverView()
                 .environmentObject(helper).environmentObject(logo).environmentObject(touch)
                 .environmentObject(fan).environmentObject(updater).environmentObject(monitor)
-                .task { updater.start() }
         } label: {
             Image(nsImage: MenuBarIcon.image)
         }

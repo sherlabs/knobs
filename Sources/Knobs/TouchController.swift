@@ -9,6 +9,7 @@ import SwiftUI
 @MainActor
 final class TouchController: ObservableObject {
     @Published private(set) var isEnabled: Bool
+    @Published private(set) var error: String?
 
     private typealias Getter = @convention(c) (AnyObject, Selector) -> Bool
     private typealias Setter = @convention(c) (AnyObject, Selector, Bool) -> Void
@@ -46,6 +47,7 @@ final class TouchController: ObservableObject {
             d?.set(!enabled, forKey: Self.key); d?.synchronize()
         }
         refresh()
+        error = isEnabled == enabled ? nil : "macOS didn\u{2019}t apply the change. Try System Settings \u{203A} Touch."
     }
 
     func toggle() { set(!isEnabled) }

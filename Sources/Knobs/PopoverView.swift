@@ -24,7 +24,7 @@ struct PopoverView: View {
         .padding(16)
         .frame(width: 320)
         .background(VisualEffect())
-        .onAppear { monitor.start(); fan.startPolling(); touch.refresh(); helper.refresh() }
+        .onAppear { monitor.start(); fan.startPolling(); touch.refresh(); helper.refresh(); Task { await updater.checkIfStale() } }
         .onDisappear { fan.stopPolling() }
     }
 
@@ -135,6 +135,9 @@ struct PopoverView: View {
                 if Capabilities.hasLogoLight && Capabilities.hasTouchDisplay { Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 0.5).padding(.leading, 42) }
                 if Capabilities.hasTouchDisplay {
                     switchRow("hand.point.up.left.fill", "Touch Input", Binding(get: { touch.isEnabled }, set: { _ in touch.toggle() }))
+                }
+                if let m = touch.error {
+                    Text(m).font(.caption).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)
                 }
                 if let m = logo.errorMessage {
                     Text(m).font(.caption).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)
