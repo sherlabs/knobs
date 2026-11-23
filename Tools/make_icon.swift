@@ -2,6 +2,10 @@
 // Usage: swift Tools/make_icon.swift <output.iconset>
 import AppKit
 
+func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> CGColor {
+    CGColor(red: r, green: g, blue: b, alpha: a)
+}
+
 func render(size: Int) -> Data {
     let s = CGFloat(size)
     let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: size, pixelsHigh: size,
@@ -12,111 +16,125 @@ func render(size: Int) -> Data {
     let ctx = NSGraphicsContext.current!.cgContext
     let cs = CGColorSpaceCreateDeviceRGB()
 
-    // macOS icon grid: squircle inset ~10%
+    // macOS icon grid
     let inset = s * 0.098
     let rect = CGRect(x: inset, y: inset, width: s - 2 * inset, height: s - 2 * inset)
     let squircle = NSBezierPath(roundedRect: rect, xRadius: rect.width * 0.225, yRadius: rect.width * 0.225)
+    let c = CGPoint(x: s / 2, y: s / 2)
 
     // Drop shadow
     ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -s * 0.012), blur: s * 0.03,
-                  color: NSColor.black.withAlphaComponent(0.35).cgColor)
+    ctx.setShadow(offset: CGSize(width: 0, height: -s * 0.014), blur: s * 0.035, color: rgb(0, 0, 0, 0.4))
     NSColor.black.setFill(); squircle.fill()
     ctx.restoreGState()
 
     ctx.saveGState()
     squircle.addClip()
 
-    // Background gradient: deep indigo -> violet -> cyan hint
-    let bg = CGGradient(colorsSpace: cs, colors: [
-        NSColor(red: 0.07, green: 0.06, blue: 0.20, alpha: 1).cgColor,
-        NSColor(red: 0.30, green: 0.16, blue: 0.62, alpha: 1).cgColor,
-        NSColor(red: 0.16, green: 0.50, blue: 0.85, alpha: 1).cgColor,
-    ] as CFArray, locations: [0, 0.6, 1])!
-    ctx.drawLinearGradient(bg, start: CGPoint(x: rect.minX, y: rect.maxY),
-                           end: CGPoint(x: rect.maxX, y: rect.minY), options: [])
+    // Background: midnight navy to deep violet, lit from below
+    let bg = CGGradient(colorsSpace: cs, colors: [rgb(0.03, 0.04, 0.14), rgb(0.12, 0.08, 0.34), rgb(0.20, 0.12, 0.50)] as CFArray, locations: [0, 0.55, 1])!
+    ctx.drawLinearGradient(bg, start: CGPoint(x: s / 2, y: rect.maxY), end: CGPoint(x: s / 2, y: rect.minY), options: [])
+    let under = CGGradient(colorsSpace: cs, colors: [rgb(0.25, 0.55, 1, 0.45), rgb(0.25, 0.55, 1, 0)] as CFArray, locations: [0, 1])!
+    ctx.drawRadialGradient(under, startCenter: CGPoint(x: c.x, y: rect.minY + s * 0.02), startRadius: 0,
+                           endCenter: CGPoint(x: c.x, y: rect.minY + s * 0.02), endRadius: s * 0.55, options: [])
 
-    let c = CGPoint(x: s / 2, y: s / 2)
-
-    // Big soft halo
-    let halo = CGGradient(colorsSpace: cs, colors: [
-        NSColor(red: 0.85, green: 0.95, blue: 1, alpha: 0.95).cgColor,
-        NSColor(red: 0.55, green: 0.80, blue: 1, alpha: 0.45).cgColor,
-        NSColor(red: 0.50, green: 0.55, blue: 1, alpha: 0.12).cgColor,
-        NSColor(white: 1, alpha: 0).cgColor,
-    ] as CFArray, locations: [0, 0.35, 0.7, 1])!
-    ctx.drawRadialGradient(halo, startCenter: c, startRadius: 0, endCenter: c, endRadius: s * 0.46, options: [])
-
-    // Glass disc
-    let r = s * 0.25
-    let disc = CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r)
-    ctx.saveGState()
-    ctx.setShadow(offset: CGSize(width: 0, height: -s * 0.015), blur: s * 0.05,
-                  color: NSColor.black.withAlphaComponent(0.3).cgColor)
-    // Orb lit from within: white core, cool cyan-blue edge
-    let glass = CGGradient(colorsSpace: cs, colors: [
-        NSColor(white: 1, alpha: 1).cgColor,
-        NSColor(red: 0.80, green: 0.93, blue: 1, alpha: 1).cgColor,
-        NSColor(red: 0.45, green: 0.68, blue: 1, alpha: 1).cgColor,
-    ] as CFArray, locations: [0, 0.55, 1])!
-    ctx.addEllipse(in: disc); ctx.clip()
-    let core = CGPoint(x: c.x - r * 0.1, y: c.y + r * 0.15)
-    ctx.drawRadialGradient(glass, startCenter: core, startRadius: 0, endCenter: c, endRadius: r * 1.05, options: [])
-    // Specular highlight
-    let spec = CGGradient(colorsSpace: cs, colors: [
-        NSColor(white: 1, alpha: 0.9).cgColor, NSColor(white: 1, alpha: 0).cgColor,
-    ] as CFArray, locations: [0, 1])!
-    ctx.drawLinearGradient(spec, start: CGPoint(x: c.x, y: disc.maxY),
-                           end: CGPoint(x: c.x, y: c.y + r * 0.2), options: [])
-    ctx.restoreGState()
-
-    // Glass rim
-    ctx.setStrokeColor(NSColor(white: 1, alpha: 0.9).cgColor)
-    ctx.setLineWidth(s * 0.006)
-    ctx.strokeEllipse(in: disc.insetBy(dx: s * 0.003, dy: s * 0.003))
-
-    // Tick arc around the knob (270 degrees, open at the bottom)
-    let ticks = 21
-    let tickR = s * 0.335
-    for i in 0..<ticks {
-        let t = CGFloat(i) / CGFloat(ticks - 1)
-        let a = (225 - 270 * t) * .pi / 180            // from lower-left, clockwise over the top
-        let lit = t <= 0.68
-        let len = (i % 5 == 0 ? s * 0.035 : s * 0.022)
-        let p1 = CGPoint(x: c.x + cos(a) * tickR, y: c.y + sin(a) * tickR)
-        let p2 = CGPoint(x: c.x + cos(a) * (tickR + len), y: c.y + sin(a) * (tickR + len))
-        ctx.setLineCap(.round)
-        ctx.setLineWidth(s * 0.009)
-        ctx.setStrokeColor(lit ? NSColor(red: 0.62, green: 0.92, blue: 1, alpha: 0.95).cgColor : NSColor(white: 1, alpha: 0.28).cgColor)
-        if lit { ctx.setShadow(offset: .zero, blur: s * 0.012, color: NSColor.cyan.withAlphaComponent(0.9).cgColor) } else { ctx.setShadow(offset: .zero, blur: 0, color: nil) }
-        ctx.move(to: p1); ctx.addLine(to: p2); ctx.strokePath()
+    // Arc geometry: 270 degrees, open at the bottom
+    let arcR = s * 0.335
+    let arcW = s * 0.034
+    let startDeg: CGFloat = 225, sweep: CGFloat = 270
+    func point(_ deg: CGFloat, _ r: CGFloat) -> CGPoint {
+        CGPoint(x: c.x + cos(deg * .pi / 180) * r, y: c.y + sin(deg * .pi / 180) * r)
     }
-    ctx.setShadow(offset: .zero, blur: 0, color: nil)
+    func arcSegment(from t0: CGFloat, to t1: CGFloat, color: CGColor, width: CGFloat) {
+        let path = CGMutablePath()
+        path.addArc(center: c, radius: arcR, startAngle: (startDeg - sweep * t0) * .pi / 180,
+                    endAngle: (startDeg - sweep * t1) * .pi / 180, clockwise: true)
+        ctx.addPath(path)
+        ctx.setStrokeColor(color); ctx.setLineWidth(width); ctx.setLineCap(.round)
+        ctx.strokePath()
+    }
 
-    // Indicator notch on the knob, pointing at the last lit tick
-    let na = (225 - 270 * 0.68) * .pi / 180
-    let n1 = CGPoint(x: c.x + cos(na) * r * 0.30, y: c.y + sin(na) * r * 0.30)
-    let n2 = CGPoint(x: c.x + cos(na) * r * 0.80, y: c.y + sin(na) * r * 0.80)
-    ctx.setLineCap(.round)
-    ctx.setLineWidth(s * 0.022)
-    ctx.setStrokeColor(NSColor(red: 0.20, green: 0.45, blue: 0.95, alpha: 1).cgColor)
-    ctx.setShadow(offset: .zero, blur: s * 0.02, color: NSColor(red: 0.2, green: 0.6, blue: 1, alpha: 0.9).cgColor)
-    ctx.move(to: n1); ctx.addLine(to: n2); ctx.strokePath()
-    ctx.setShadow(offset: .zero, blur: 0, color: nil)
+    // Unlit track
+    arcSegment(from: 0, to: 1, color: rgb(1, 1, 1, 0.10), width: arcW)
 
-    // Top gloss on the squircle
-    let gloss = CGGradient(colorsSpace: cs, colors: [
-        NSColor(white: 1, alpha: 0.28).cgColor,
-        NSColor(white: 1, alpha: 0).cgColor,
-    ] as CFArray, locations: [0, 1])!
-    ctx.drawLinearGradient(gloss, start: CGPoint(x: s / 2, y: rect.maxY),
-                           end: CGPoint(x: s / 2, y: rect.midY), options: [])
+    // Lit portion: glowing gradient (cyan -> blue -> violet -> pink)
+    let level: CGFloat = 0.72
+    let stops: [(CGFloat, CGFloat, CGFloat)] = [(0.30, 0.90, 1.0), (0.30, 0.55, 1.0), (0.62, 0.40, 1.0), (0.95, 0.45, 0.90)]
+    func lerp(_ t: CGFloat) -> CGColor {
+        let f = t * CGFloat(stops.count - 1), i = min(Int(f), stops.count - 2), u = f - CGFloat(i)
+        let a = stops[i], b = stops[i + 1]
+        return rgb(a.0 + (b.0 - a.0) * u, a.1 + (b.1 - a.1) * u, a.2 + (b.2 - a.2) * u)
+    }
+    // Glow pass then crisp pass
+    for pass in 0..<2 {
+        ctx.saveGState()
+        if pass == 0 { ctx.setShadow(offset: .zero, blur: s * 0.05, color: rgb(0.35, 0.65, 1, 0.9)) }
+        let n = 90
+        for k in 0..<n {
+            let t0 = level * CGFloat(k) / CGFloat(n), t1 = level * CGFloat(k + 1) / CGFloat(n) + 0.002
+            arcSegment(from: t0, to: t1, color: lerp(CGFloat(k) / CGFloat(n)), width: pass == 0 ? arcW * 1.1 : arcW)
+        }
+        ctx.restoreGState()
+    }
+
+    // Knob: bezel ring
+    let rOuter = s * 0.255
+    let bezel = CGRect(x: c.x - rOuter, y: c.y - rOuter, width: 2 * rOuter, height: 2 * rOuter)
+    ctx.saveGState()
+    ctx.setShadow(offset: CGSize(width: 0, height: -s * 0.02), blur: s * 0.05, color: rgb(0, 0, 0, 0.55))
+    ctx.addEllipse(in: bezel); ctx.setFillColor(rgb(0.1, 0.1, 0.2)); ctx.fillPath()
     ctx.restoreGState()
 
-    // Rim light on the squircle edge
+    ctx.saveGState()
+    ctx.addEllipse(in: bezel); ctx.clip()
+    let bez = CGGradient(colorsSpace: cs, colors: [rgb(0.95, 0.97, 1), rgb(0.55, 0.62, 0.85), rgb(0.18, 0.20, 0.40), rgb(0.60, 0.68, 0.95)] as CFArray, locations: [0, 0.4, 0.75, 1])!
+    ctx.drawLinearGradient(bez, start: CGPoint(x: bezel.minX, y: bezel.maxY), end: CGPoint(x: bezel.maxX, y: bezel.minY), options: [])
+    ctx.restoreGState()
+
+    // Knob: concave glass face
+    let rFace = rOuter * 0.86
+    let face = CGRect(x: c.x - rFace, y: c.y - rFace, width: 2 * rFace, height: 2 * rFace)
+    ctx.saveGState()
+    ctx.addEllipse(in: face); ctx.clip()
+    let faceG = CGGradient(colorsSpace: cs, colors: [rgb(0.86, 0.93, 1), rgb(0.62, 0.78, 1), rgb(0.36, 0.50, 0.92)] as CFArray, locations: [0, 0.6, 1])!
+    ctx.drawRadialGradient(faceG, startCenter: CGPoint(x: c.x - rFace * 0.25, y: c.y + rFace * 0.3), startRadius: 0,
+                           endCenter: c, endRadius: rFace * 1.15, options: [.drawsAfterEndLocation])
+    // inner shadow along the top edge to read as concave
+    let inner = CGGradient(colorsSpace: cs, colors: [rgb(0.1, 0.15, 0.5, 0.35), rgb(0.1, 0.15, 0.5, 0)] as CFArray, locations: [0, 1])!
+    ctx.drawLinearGradient(inner, start: CGPoint(x: c.x, y: face.maxY), end: CGPoint(x: c.x, y: c.y + rFace * 0.2), options: [])
+    // lower rim light
+    let rim = CGGradient(colorsSpace: cs, colors: [rgb(1, 1, 1, 0.55), rgb(1, 1, 1, 0)] as CFArray, locations: [0, 1])!
+    ctx.drawLinearGradient(rim, start: CGPoint(x: c.x, y: face.minY), end: CGPoint(x: c.x, y: c.y - rFace * 0.35), options: [])
+    ctx.restoreGState()
+
+    // Indicator: glowing capsule toward the lit end of the arc
+    let indDeg = startDeg - sweep * level
+    ctx.saveGState()
+    ctx.setLineCap(.round)
+    ctx.setShadow(offset: .zero, blur: s * 0.03, color: rgb(0.3, 0.6, 1, 0.9))
+    ctx.setStrokeColor(rgb(0.16, 0.34, 0.9))
+    ctx.setLineWidth(s * 0.026)
+    ctx.move(to: point(indDeg, rFace * 0.42)); ctx.addLine(to: point(indDeg, rFace * 0.82)); ctx.strokePath()
+    ctx.restoreGState()
+
+    // Specular highlight arc on the bezel
+    ctx.saveGState()
+    ctx.addEllipse(in: bezel); ctx.clip()
+    ctx.setStrokeColor(rgb(1, 1, 1, 0.85)); ctx.setLineWidth(s * 0.006); ctx.setLineCap(.round)
+    let hl = CGMutablePath()
+    hl.addArc(center: c, radius: rOuter * 0.965, startAngle: 120 * .pi / 180, endAngle: 175 * .pi / 180, clockwise: false)
+    ctx.addPath(hl); ctx.strokePath()
+    ctx.restoreGState()
+
+    // Glass sheen on the squircle
+    let gloss = CGGradient(colorsSpace: cs, colors: [rgb(1, 1, 1, 0.22), rgb(1, 1, 1, 0)] as CFArray, locations: [0, 1])!
+    ctx.drawLinearGradient(gloss, start: CGPoint(x: s / 2, y: rect.maxY), end: CGPoint(x: s / 2, y: rect.midY + s * 0.05), options: [])
+    ctx.restoreGState()
+
+    // Edge light
     ctx.saveGState()
     squircle.addClip()
-    NSColor(white: 1, alpha: 0.25).setStroke()
+    NSColor(white: 1, alpha: 0.28).setStroke()
     squircle.lineWidth = s * 0.006
     squircle.stroke()
     ctx.restoreGState()
