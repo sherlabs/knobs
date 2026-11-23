@@ -216,7 +216,7 @@ struct FanKnob: View {
     private var rpm: Int { Int((fan.fans.map(\.actual).max() ?? 0).rounded()) }
     private var interactive: Bool { helper.state == .ready }
     private var capSize: CGFloat { size - 56 }
-    private var modeLabel: String { !interactive ? "Monitor only" : fan.mode == .auto ? "Automatic" : (fan.mode == .full ? "Full blast" : "Manual") }
+    private var modeLabel: String { !interactive ? "Monitor only" : fan.mode == .auto ? (!fan.fans.isEmpty && rpm == 0 ? "Automatic \u{00B7} idle" : "Automatic") : (fan.mode == .full ? "Full blast" : "Manual") }
 
     var body: some View {
         ZStack {
@@ -258,7 +258,7 @@ struct FanKnob: View {
                 .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8), value: fraction)
 
             VStack(spacing: 3) {
-                Text(rpm > 0 ? rpm.formatted() : "\u{2013}")
+                Text(fan.fans.isEmpty ? "\u{2013}" : rpm.formatted())
                     .font(.system(size: 40, weight: .light, design: .rounded)).monospacedDigit().numericFlip()
                 Text("RPM").font(.system(size: 11, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
                 Text(modeLabel).font(.caption2.weight(.medium))
