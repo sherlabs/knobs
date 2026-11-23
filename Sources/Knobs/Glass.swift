@@ -18,16 +18,13 @@ struct VisualEffect: NSViewRepresentable {
     func updateNSView(_ v: NSVisualEffectView, context: Context) { v.material = material }
 }
 
-/// Grouped rounded container, like a System Settings section. Uses Liquid Glass on macOS 26+.
+/// Grouped rounded container, like a System Settings section.
 struct GroupBox26<Content: View>: View {
     @ViewBuilder var content: Content
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-        if #available(macOS 26.0, *) {
-            content.glassEffect(.regular, in: shape)
-        } else {
-            content.background(shape.fill(.quaternary.opacity(0.6)))
-                .overlay(shape.strokeBorder(.separator, lineWidth: 0.5))
-        }
+        content
+            .background(shape.fill(Color.primary.opacity(0.06)))
+            .overlay(shape.strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
     }
 }

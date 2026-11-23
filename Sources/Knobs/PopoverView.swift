@@ -109,7 +109,7 @@ struct PopoverView: View {
                 if Capabilities.hasLogoLight {
                     switchRow("apple.logo", "Logo Light", Binding(get: { logo.isOn }, set: { _ in logo.toggle() }), busy: logo.isWorking)
                 }
-                if Capabilities.hasLogoLight && Capabilities.hasTouchDisplay { Divider().padding(.leading, 42) }
+                if Capabilities.hasLogoLight && Capabilities.hasTouchDisplay { Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 0.5).padding(.leading, 42) }
                 if Capabilities.hasTouchDisplay {
                     switchRow("hand.point.up.left.fill", "Touch Input", Binding(get: { touch.isEnabled }, set: { _ in touch.toggle() }))
                 }
