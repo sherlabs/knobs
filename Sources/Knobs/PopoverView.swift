@@ -117,8 +117,8 @@ struct PopoverView: View {
     private func stat(_ value: String, _ label: String) -> some View {
         VStack(spacing: 3) {
             Text(value).font(.system(.title3, design: .rounded).weight(.semibold)).monospacedDigit().numericFlip()
-            Text(label.uppercased()).font(.system(size: 10, weight: .semibold)).tracking(0.6).foregroundStyle(.secondary)
-        }.frame(maxWidth: .infinity)
+            Text(label.uppercased()).font(.system(size: 11, weight: .semibold)).tracking(0.6).foregroundStyle(.secondary)
+        }.frame(maxWidth: .infinity).accessibilityElement(children: .combine)
     }
 
     // MARK: switches
@@ -152,6 +152,8 @@ struct PopoverView: View {
             Toggle(title, isOn: isOn).toggleStyle(.switch).labelsHidden().controlSize(.small).disabled(busy)
         }
         .padding(.horizontal, 12).padding(.vertical, 9)
+        .contentShape(Rectangle())
+        .onTapGesture { if !busy { isOn.wrappedValue.toggle() } }
     }
 
     // MARK: footer
@@ -176,7 +178,8 @@ struct PopoverView: View {
                 Divider()
                 Button("Quit Knobs") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
             } label: {
-                Image(systemName: "ellipsis.circle").font(.body).foregroundStyle(.secondary)
+                Image(systemName: "ellipsis.circle").font(.title3).foregroundStyle(.secondary).frame(width: 28, height: 28).contentShape(Rectangle())
+                    .accessibilityLabel("More")
             }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
         }
@@ -189,7 +192,11 @@ struct FanKnob: View {
     @EnvironmentObject var helper: HelperClient
     @State private var lastSend = Date.distantPast
     @State private var pressed = false
+    @State private var dragValid = false
+    @State private var lastDetent = -1
+    @FocusState private var focused: Bool
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let size: CGFloat = 212
     private let startDeg = 225.0, sweep = 270.0
     private let ticks = 61
@@ -206,13 +213,13 @@ struct FanKnob: View {
     private var rpm: Int { Int((fan.fans.map(\.actual).max() ?? 0).rounded()) }
     private var interactive: Bool { helper.state == .ready }
     private var capSize: CGFloat { size - 56 }
-    private var modeLabel: String { fan.mode == .auto ? "Automatic" : (fan.mode == .full ? "Full blast" : "Manual") }
+    private var modeLabel: String { !interactive ? "Monitor only" : fan.mode == .auto ? "Automatic" : (fan.mode == .full ? "Full blast" : "Manual") }
 
     var body: some View {
         ZStack {
             // soft halo behind the dial while the user is in control
             Circle().fill(Color.accentColor.opacity(fan.mode == .auto ? 0.0 : 0.22)).blur(radius: 28).frame(width: capSize + 20, height: capSize + 20)
-                .animation(.easeOut(duration: 0.4), value: fan.mode)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.4), value: fan.mode)
 
             // machined tick ring: lit ticks warm up toward the current value
             Canvas { ctx, sz in
@@ -228,47 +235,101 @@ struct FanKnob: View {
                     p.addLine(to: CGPoint(x: c.x + cos(a) * outer, y: c.y - sin(a) * outer))
                     let lit = t <= fraction + 0.0001
                     let strength = fan.mode == .auto ? 0.5 : 0.7
-                    let alpha = lit ? strength + (1 - strength) * (fraction > 0 ? t / max(fraction, 0.01) : 0) : (major ? 0.30 : 0.16)
+                    let alpha = lit ? strength + (1 - strength) * (fraction > 0 ? t / max(fraction, 0.01) : 0) : (major ? 0.42 : 0.26)
                     ctx.stroke(p, with: .color((lit ? Color.accentColor : Color.primary).opacity(alpha)), style: StrokeStyle(lineWidth: major ? 2.2 : 1.5, lineCap: .round))
                 }
             }
             .frame(width: size, height: size)
-            .animation(.easeOut(duration: 0.3), value: fraction)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.3), value: fraction)
 
             // cap: system material with a specular rim
             cap
                 .scaleEffect(pressed ? 0.985 : 1)
-                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
+                .animation(reduceMotion ? nil : .spring(response: 0.25, dampingFraction: 0.7), value: pressed)
 
             // notch
             Capsule().fill(Color.accentColor).frame(width: 3.5, height: 10)
                 .shadow(color: Color.accentColor.opacity(0.6), radius: 3)
                 .offset(y: -capSize / 2 + 11)
                 .rotationEffect(.degrees(-135 + fraction * sweep))
-                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: fraction)
+                .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8), value: fraction)
 
             VStack(spacing: 3) {
                 Text(rpm > 0 ? rpm.formatted() : "\u{2013}")
                     .font(.system(size: 40, weight: .light, design: .rounded)).monospacedDigit().numericFlip()
-                Text("RPM").font(.system(size: 10, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
+                Text("RPM").font(.system(size: 11, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
                 Text(modeLabel).font(.caption2.weight(.medium))
                     .foregroundStyle(fan.mode == .auto ? Color.secondary : Color.accentColor)
                     .padding(.top, 4)
             }
 
             // range captions under the open end of the arc
-            Text("MIN").font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(.tertiary)
+            Text("MIN").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundStyle(.secondary)
                 .offset(x: -size * 0.27, y: size * 0.46)
-            Text("MAX").font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(.tertiary)
+            Text("MAX").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundStyle(.secondary)
                 .offset(x: size * 0.27, y: size * 0.46)
         }
         .frame(width: size, height: size + 8)
+        .opacity(interactive ? 1 : 0.7)
         .contentShape(Circle())
-        .gesture(DragGesture(minimumDistance: 0)
-            .onChanged { v in pressed = true; turn(to: v.location, final: false) }
-            .onEnded { v in pressed = false; turn(to: v.location, final: true) },
+        .gesture(DragGesture(minimumDistance: 4)
+            .onChanged { v in
+                if !pressed { dragValid = startsOnDial(v.startLocation) }
+                pressed = true
+                if dragValid { turn(to: v.location, final: false) }
+            }
+            .onEnded { v in
+                pressed = false
+                if dragValid { turn(to: v.location, final: true) }
+                dragValid = false
+            },
                  including: interactive ? .all : .subviews)
-        .help(interactive ? "Drag to set fan speed" : "Fan speed (monitor only)")
+        .overlay(Circle().strokeBorder(Color.accentColor, lineWidth: 2).padding(2).opacity(focused ? 0.8 : 0))
+        .focusable(interactive)
+        .focused($focused)
+        .onMoveCommand { dir in
+            switch dir {
+            case .left, .down: nudge(-0.05)
+            case .right, .up: nudge(0.05)
+            default: break
+            }
+        }
+        .help(interactive ? "Drag or use the arrow keys to set fan speed" : "Fan speed (monitor only)")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Fan speed")
+        .accessibilityValue("\(rpm.formatted()) RPM, \(modeLabel)")
+        .accessibilityHint(interactive ? "Adjustable. Swipe up or down to change the speed." : "Monitoring only.")
+        .accessibilityAdjustableAction { direction in
+            guard interactive else { return }
+            switch direction {
+            case .increment: nudge(0.05)
+            case .decrement: nudge(-0.05)
+            @unknown default: break
+            }
+        }
+    }
+
+    /// Only a press on the dial itself may take over the fans, never a stray click near it.
+    private func startsOnDial(_ p: CGPoint) -> Bool {
+        let d = hypot(p.x - size / 2, p.y - (size + 8) / 2)
+        return d >= 30 && d <= size / 2 + 6
+    }
+
+    private func nudge(_ delta: Double) {
+        let base = fan.mode == .manual ? fan.manualFraction : fraction
+        fan.manualFraction = min(1, max(0, base + delta))
+        if fan.mode != .manual { fan.choose(.manual) }
+        detent(fan.manualFraction)
+        fan.commitManual()
+    }
+
+    /// A small tap each time the knob crosses one of the major ticks.
+    private func detent(_ f: Double) {
+        let i = Int((f * 6).rounded())
+        if i != lastDetent {
+            if lastDetent != -1 { NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) }
+            lastDetent = i
+        }
     }
 
     @ViewBuilder private var cap: some View {
@@ -289,8 +350,12 @@ struct FanKnob: View {
         var theta = atan2(dy, dx) * 180 / .pi; if theta < 0 { theta += 360 }
         var delta = startDeg - theta; if delta < 0 { delta += 360 }
         let f: Double = delta <= sweep ? delta / sweep : (delta < sweep + (360 - sweep) / 2 ? 1 : 0)
-        fan.manualFraction = f
+        // Pin to the end instead of flipping to the other one when the drag crosses the gap.
+        let held = fan.mode == .manual ? fan.manualFraction : fraction
+        let value = abs(f - held) > 0.5 ? (held > 0.5 ? 1.0 : 0.0) : f
+        fan.manualFraction = value
         if fan.mode != .manual { fan.choose(.manual) }
+        detent(value)
         if final || Date().timeIntervalSince(lastSend) > 0.3 { lastSend = Date(); fan.commitManual() }
     }
 }
