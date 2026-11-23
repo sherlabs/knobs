@@ -7,6 +7,7 @@ struct KnobsApp: App {
     @StateObject private var touch = TouchController()
     @StateObject private var fan: FanController
     @StateObject private var updater = Updater()
+    @StateObject private var monitor = MonitorController()
 
     init() {
         let h = HelperClient()
@@ -18,7 +19,7 @@ struct KnobsApp: App {
         MenuBarExtra {
             PopoverView()
                 .environmentObject(helper).environmentObject(logo).environmentObject(touch)
-                .environmentObject(fan).environmentObject(updater)
+                .environmentObject(fan).environmentObject(updater).environmentObject(monitor)
                 .task { logo.helper = helper; updater.start() }
         } label: {
             Image(systemName: "dial.medium.fill").symbolRenderingMode(.hierarchical)

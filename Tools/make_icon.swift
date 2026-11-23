@@ -16,10 +16,10 @@ func render(size: Int) -> Data {
     let ctx = NSGraphicsContext.current!.cgContext
 
     // Flat palette
-    let ink = rgb(0.067, 0.071, 0.133)        // #111222 background
+    let ink = rgb(0.075, 0.075, 0.085)        // #131316 graphite background
     let white = rgb(1, 1, 1)
-    let accent = rgb(0.24, 0.86, 1.0)         // #3DDBFF
-    let track = rgb(1, 1, 1, 0.14)
+    let accent = rgb(1, 1, 1)                 // white
+    let track = rgb(1, 1, 1, 0.16)
 
     // macOS icon grid, flat squircle
     let inset = s * 0.098
@@ -47,7 +47,7 @@ func render(size: Int) -> Data {
 
     // Knob: a plain white disc
     let r = s * 0.205
-    ctx.setFillColor(white)
+    ctx.setFillColor(rgb(0.90, 0.90, 0.92))
     ctx.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
 
     // Indicator notch in the ink colour, pointing at the end of the lit arc

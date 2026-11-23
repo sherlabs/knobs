@@ -60,7 +60,7 @@ struct AboutView: View {
 
     private func row<T: View>(_ text: String, systemImage: String, @ViewBuilder trailing: () -> T) -> some View {
         HStack {
-            Image(systemName: systemImage).foregroundStyle(.cyan)
+            Image(systemName: systemImage).foregroundStyle(.white.opacity(0.8))
             Text(text).font(.system(size: 12, weight: .medium, design: .rounded))
             Spacer()
             trailing()

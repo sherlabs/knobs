@@ -57,7 +57,7 @@ struct FansView: View {
                                 Spacer()
                                 Text("\(Int(fan.manualFraction * 100))%").font(.system(size: 11, weight: .semibold, design: .rounded)).monospacedDigit()
                             }
-                            Slider(value: $fan.manualFraction, in: 0...1) { editing in if !editing { fan.commitManual() } }.tint(.cyan)
+                            Slider(value: $fan.manualFraction, in: 0...1) { editing in if !editing { fan.commitManual() } }.tint(.white)
                         }
                     }
                     Text(caption).font(.system(size: 10.5)).foregroundStyle(.secondary).multilineTextAlignment(.center)
@@ -99,7 +99,7 @@ struct FanGauge: View {
                 ZStack {
                     Circle().stroke(.white.opacity(0.1), lineWidth: 7)
                     Circle().trim(from: 0, to: max(0.02, reading.fraction))
-                        .stroke(AngularGradient(colors: [.cyan, .blue, .purple, .pink], center: .center), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                        .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: 7, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .animation(.easeOut(duration: 0.6), value: reading.fraction)
                     VStack(spacing: 0) {

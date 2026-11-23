@@ -4,12 +4,9 @@ import SwiftUI
 struct GlassBackground: View {
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.16, green: 0.12, blue: 0.42).opacity(0.55),
-                                    Color(red: 0.36, green: 0.20, blue: 0.62).opacity(0.30),
-                                    Color(red: 0.10, green: 0.42, blue: 0.70).opacity(0.38)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-            Circle().fill(Color.cyan.opacity(0.22)).frame(width: 180).blur(radius: 50).offset(x: 110, y: -150)
-            Circle().fill(Color.purple.opacity(0.25)).frame(width: 200).blur(radius: 60).offset(x: -120, y: 170)
+            // Neutral graphite, a touch lighter at the top like light catching glass
+            LinearGradient(colors: [Color(white: 0.20).opacity(0.55), Color(white: 0.07).opacity(0.65)],
+                           startPoint: .top, endPoint: .bottom)
             Rectangle().fill(.ultraThinMaterial)
         }
     }
@@ -43,10 +40,10 @@ struct GlassSwitch: View {
             ZStack(alignment: isOn ? .trailing : .leading) {
                 Capsule().fill(.ultraThinMaterial)
                     .overlay(Capsule().fill(LinearGradient(
-                        colors: isOn ? [Color.cyan.opacity(0.6), Color.blue.opacity(0.5)] : [.white.opacity(0.08), .white.opacity(0.02)],
+                        colors: isOn ? [.white.opacity(0.82), .white.opacity(0.68)] : [.white.opacity(0.08), .white.opacity(0.02)],
                         startPoint: .leading, endPoint: .trailing)))
                     .overlay(Capsule().strokeBorder(.white.opacity(0.3), lineWidth: 1))
-                Circle().fill(.white).shadow(color: .black.opacity(0.3), radius: 3, y: 1)
+                Circle().fill(isOn ? Color(white: 0.16) : Color.white.opacity(0.9)).shadow(color: .black.opacity(0.3), radius: 3, y: 1)
                     .overlay { if busy { ProgressView().controlSize(.small) } }
                     .padding(3).frame(width: h, height: h)
             }
@@ -105,8 +102,8 @@ struct GlassButton: View {
                 Text(title).font(.system(size: 12, weight: .semibold, design: .rounded))
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
-            .foregroundStyle(.white)
-            .background(Capsule().fill(prominent ? AnyShapeStyle(LinearGradient(colors: [.cyan.opacity(0.6), .blue.opacity(0.55)], startPoint: .leading, endPoint: .trailing)) : AnyShapeStyle(Color.white.opacity(0.12))))
+            .foregroundStyle(prominent ? Color(white: 0.1) : Color.white)
+            .background(Capsule().fill(prominent ? Color.white.opacity(0.9) : Color.white.opacity(0.12)))
             .overlay(Capsule().strokeBorder(.white.opacity(0.3), lineWidth: 1))
         }
         .buttonStyle(.plain)

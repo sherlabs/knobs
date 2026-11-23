@@ -2,9 +2,9 @@ import SwiftUI
 import AppKit
 
 enum Tab: String, CaseIterable, Identifiable {
-    case lights = "Lights", fans = "Fans", about = "About"
+    case lights = "Lights", monitor = "Monitor", fans = "Fans", about = "About"
     var id: String { rawValue }
-    var icon: String { switch self { case .lights: "lightbulb.fill"; case .fans: "fan.fill"; case .about: "info.circle.fill" } }
+    var icon: String { switch self { case .lights: "lightbulb.fill"; case .monitor: "chart.xyaxis.line"; case .fans: "fan.fill"; case .about: "info.circle.fill" } }
 }
 
 struct PopoverView: View {
@@ -20,7 +20,7 @@ struct PopoverView: View {
                     Button { tab = .about } label: {
                         Label("Update", systemImage: "arrow.down.circle.fill").font(.system(size: 11, weight: .semibold))
                             .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(Capsule().fill(.green.opacity(0.35)))
+                            .background(Capsule().fill(.white.opacity(0.16)))
                     }.buttonStyle(.plain)
                 }
                 Button { NSApplication.shared.terminate(nil) } label: {
@@ -33,6 +33,7 @@ struct PopoverView: View {
             Group {
                 switch tab {
                 case .lights: LightsView()
+                case .monitor: MonitorView()
                 case .fans: FansView()
                 case .about: AboutView()
                 }
