@@ -6,12 +6,12 @@ A small, glassy menu bar toolkit for your Mac. One rotary knob for the fans, a q
 live numbers, and switches for the little things macOS hides.
 
 - **Fans:** live RPM for every fan. Drag the knob to set a speed, or choose Auto, Manual or
-  Max. Fans always return to automatic when you quit, if Knobs stops responding, or if the CPU
+  Full blast. Fans always return to automatic when you quit, if Knobs stops responding, or if the CPU
   gets dangerously hot.
 - **At a glance:** CPU and GPU load, memory use, system power (or battery), and a CPU
   temperature status.
-- **Logo light:** switch the backlit Apple logo on MacBook Pro on or off.
-- **Touch input:** the same switch as System Settings > Touch.
+- **Logo light:** switch the backlit Apple logo on or off (PROLED XDR MacBook Pro only).
+- **Touch input:** the same switch as System Settings > Touch (touch-display Macs only).
 - **Self-updating:** checks GitHub Releases, verifies the checksum and the developer signature,
   then replaces itself. Turn it off from the `...` menu.
 
