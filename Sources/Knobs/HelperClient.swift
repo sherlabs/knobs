@@ -28,7 +28,7 @@ final class HelperClient: ObservableObject {
     /// One-time setup at first launch: register the helper and send the user to Login Items to
     /// approve it. After that, every action (fans, logo light) runs without another prompt.
     func firstLaunchSetup() {
-        let key = "helperSetupOffered"
+        let key = "helperSetupOffered.v2"
         guard !UserDefaults.standard.bool(forKey: key) else { return }
         guard state == .notInstalled || state == .needsApproval else { return }
         UserDefaults.standard.set(true, forKey: key)
@@ -50,7 +50,10 @@ final class HelperClient: ObservableObject {
             state = .needsApproval
             watchForApproval()
         case .notRegistered: state = .notInstalled
-        case .notFound: state = .unavailable("Helper is missing from this build.")
+        case .notFound:
+            // Before the first registration macOS reports "not found". If the daemon plist is bundled, we can still register it.
+            let plist = Bundle.main.bundlePath + "/Contents/Library/LaunchDaemons/" + KnobsConstants.helperPlist
+            state = FileManager.default.fileExists(atPath: plist) ? .notInstalled : .unavailable("Helper is missing from this build.")
         @unknown default: state = .notInstalled
         }
     }

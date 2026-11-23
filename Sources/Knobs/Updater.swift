@@ -22,14 +22,16 @@ final class Updater: ObservableObject {
     var hasUpdate: Bool { if case .available = state { return true }; return false }
 
     func start() {
-        Task { try? await Task.sleep(nanoseconds: 4_000_000_000); if autoCheck { await check() } }
+        Task { try? await Task.sleep(nanoseconds: 4_000_000_000); if autoCheck { await check(silent: true) } }
         timer = Timer.scheduledTimer(withTimeInterval: 24 * 3600, repeats: true) { [weak self] _ in
-            Task { @MainActor in if self?.autoCheck == true { await self?.check() } }
+            Task { @MainActor in if self?.autoCheck == true { await self?.check(silent: true) } }
         }
     }
 
-    func check() async {
-        state = .checking
+    /// `silent` checks (automatic) never surface errors; only a manual check reports problems.
+    func check(silent: Bool = false) async {
+        if !silent { state = .checking }
+        let previous = state
         do {
             var req = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.repo)/releases/latest")!)
             req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -37,7 +39,7 @@ final class Updater: ObservableObject {
             let (data, resp) = try await URLSession.shared.data(for: req)
             guard (resp as? HTTPURLResponse)?.statusCode == 200,
                   let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let tag = json["tag_name"] as? String else { state = .failed("No release information available."); return }
+                  let tag = json["tag_name"] as? String else { state = silent ? previous : .failed("No release information available."); return }
             let latest = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
             guard Self.isNewer(latest, than: currentVersion) else { state = .upToDate; return }
             let assets = (json["assets"] as? [[String: Any]]) ?? []
@@ -46,7 +48,7 @@ final class Updater: ObservableObject {
             }
             guard let zip = url("-macOS.zip"), let sha = url("-macOS.zip.sha256") else { state = .failed("Release has no download."); return }
             state = .available(Release(version: latest, notes: (json["body"] as? String) ?? "", zip: zip, sha: sha))
-        } catch { state = .failed("Couldn\u{2019}t reach GitHub.") }
+        } catch { state = silent ? previous : .failed("Couldn\u{2019}t reach GitHub.") }
     }
 
     func install(_ release: Release) async {

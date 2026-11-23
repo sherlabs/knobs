@@ -186,7 +186,7 @@ struct FanKnob: View {
     }
     private var rpm: Int { Int((fan.fans.map(\.actual).max() ?? 0).rounded()) }
     private var interactive: Bool { helper.state == .ready }
-    private var capSize: CGFloat { size - 62 }
+    private var capSize: CGFloat { size - 40 }
 
     var body: some View {
         ZStack {
@@ -223,13 +223,13 @@ struct FanKnob: View {
                 .scaleEffect(pressed ? 0.985 : 1)
 
             // notch
-            Capsule().fill(.white).frame(width: 3, height: 13)
-                .offset(y: -capSize / 2 + 12)
+            Capsule().fill(.white).frame(width: 3, height: 9)
+                .offset(y: -capSize / 2 + 10)
                 .rotationEffect(.degrees(-135 + fraction * sweep))
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: fraction)
 
             VStack(spacing: 2) {
-                Text(rpm > 0 ? rpm.formatted() : "\u{2013}").font(.system(size: 34, weight: .thin)).monospacedDigit().numericFlip()
+                Text(rpm > 0 ? rpm.formatted() : "\u{2013}").font(.system(size: 32, weight: .thin)).monospacedDigit().numericFlip()
                 Text("RPM").font(.system(size: 9.5, weight: .semibold)).tracking(1.2).foregroundStyle(.white.opacity(0.45))
             }
         }

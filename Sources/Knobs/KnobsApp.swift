@@ -10,6 +10,9 @@ struct KnobsApp: App {
     @StateObject private var monitor = MonitorController()
 
     init() {
+        if CommandLine.arguments.contains("--diagnose") {
+            import_diagnose()
+        }
         let h = HelperClient()
         let l = LogoController()
         l.helper = h
@@ -30,4 +33,21 @@ struct KnobsApp: App {
         }
         .menuBarExtraStyle(.window)
     }
+}
+
+import ServiceManagement
+import KnobsKit
+
+/// `Knobs --diagnose`: print the helper's registration state, then exit. For support and debugging.
+func import_diagnose() {
+    let svc = SMAppService.daemon(plistName: KnobsConstants.helperPlist)
+    print("bundle:", Bundle.main.bundlePath)
+    print("team:", Trust.ownTeamID() ?? "none")
+    print("daemon status:", svc.status.rawValue, "(0 notRegistered, 1 enabled, 2 requiresApproval, 3 notFound)")
+    if CommandLine.arguments.contains("--register") {
+        do { try svc.register(); print("register: ok") } catch { print("register error:", error, (error as NSError).domain, (error as NSError).code) }
+        print("status after:", svc.status.rawValue)
+    }
+    print("plist exists:", FileManager.default.fileExists(atPath: Bundle.main.bundlePath + "/Contents/Library/LaunchDaemons/" + KnobsConstants.helperPlist))
+    exit(0)
 }
