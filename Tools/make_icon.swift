@@ -1,4 +1,4 @@
-// Generates the GlowBar app icon as an .iconset folder.
+// Generates the Knobs app icon as an .iconset folder.
 // Usage: swift Tools/make_icon.swift <output.iconset>
 import AppKit
 
@@ -48,7 +48,7 @@ func render(size: Int) -> Data {
     ctx.drawRadialGradient(halo, startCenter: c, startRadius: 0, endCenter: c, endRadius: s * 0.46, options: [])
 
     // Glass disc
-    let r = s * 0.235
+    let r = s * 0.25
     let disc = CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r)
     ctx.saveGState()
     ctx.setShadow(offset: CGSize(width: 0, height: -s * 0.015), blur: s * 0.05,
@@ -75,11 +75,34 @@ func render(size: Int) -> Data {
     ctx.setLineWidth(s * 0.006)
     ctx.strokeEllipse(in: disc.insetBy(dx: s * 0.003, dy: s * 0.003))
 
-    // Outer thin light ring
-    let rr = s * 0.33
-    ctx.setStrokeColor(NSColor(white: 1, alpha: 0.35).cgColor)
-    ctx.setLineWidth(s * 0.008)
-    ctx.strokeEllipse(in: CGRect(x: c.x - rr, y: c.y - rr, width: 2 * rr, height: 2 * rr))
+    // Tick arc around the knob (270 degrees, open at the bottom)
+    let ticks = 21
+    let tickR = s * 0.335
+    for i in 0..<ticks {
+        let t = CGFloat(i) / CGFloat(ticks - 1)
+        let a = (225 - 270 * t) * .pi / 180            // from lower-left, clockwise over the top
+        let lit = t <= 0.68
+        let len = (i % 5 == 0 ? s * 0.035 : s * 0.022)
+        let p1 = CGPoint(x: c.x + cos(a) * tickR, y: c.y + sin(a) * tickR)
+        let p2 = CGPoint(x: c.x + cos(a) * (tickR + len), y: c.y + sin(a) * (tickR + len))
+        ctx.setLineCap(.round)
+        ctx.setLineWidth(s * 0.009)
+        ctx.setStrokeColor(lit ? NSColor(red: 0.62, green: 0.92, blue: 1, alpha: 0.95).cgColor : NSColor(white: 1, alpha: 0.28).cgColor)
+        if lit { ctx.setShadow(offset: .zero, blur: s * 0.012, color: NSColor.cyan.withAlphaComponent(0.9).cgColor) } else { ctx.setShadow(offset: .zero, blur: 0, color: nil) }
+        ctx.move(to: p1); ctx.addLine(to: p2); ctx.strokePath()
+    }
+    ctx.setShadow(offset: .zero, blur: 0, color: nil)
+
+    // Indicator notch on the knob, pointing at the last lit tick
+    let na = (225 - 270 * 0.68) * .pi / 180
+    let n1 = CGPoint(x: c.x + cos(na) * r * 0.30, y: c.y + sin(na) * r * 0.30)
+    let n2 = CGPoint(x: c.x + cos(na) * r * 0.80, y: c.y + sin(na) * r * 0.80)
+    ctx.setLineCap(.round)
+    ctx.setLineWidth(s * 0.022)
+    ctx.setStrokeColor(NSColor(red: 0.20, green: 0.45, blue: 0.95, alpha: 1).cgColor)
+    ctx.setShadow(offset: .zero, blur: s * 0.02, color: NSColor(red: 0.2, green: 0.6, blue: 1, alpha: 0.9).cgColor)
+    ctx.move(to: n1); ctx.addLine(to: n2); ctx.strokePath()
+    ctx.setShadow(offset: .zero, blur: 0, color: nil)
 
     // Top gloss on the squircle
     let gloss = CGGradient(colorsSpace: cs, colors: [

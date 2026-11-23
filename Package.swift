@@ -2,9 +2,18 @@
 import PackageDescription
 
 let package = Package(
-    name: "GlowBar",
+    name: "Knobs",
     platforms: [.macOS(.v13)],
+    products: [
+        .executable(name: "Knobs", targets: ["Knobs"]),
+        .executable(name: "knobs-helper", targets: ["KnobsHelper"]),
+        .executable(name: "smcprobe", targets: ["smcprobe"]),
+    ],
     targets: [
-        .executableTarget(name: "GlowBar", path: "Sources/GlowBar")
+        .target(name: "CSMC", path: "Sources/CSMC"),
+        .target(name: "KnobsKit", dependencies: ["CSMC"], path: "Sources/KnobsKit"),
+        .executableTarget(name: "KnobsHelper", dependencies: ["KnobsKit"], path: "Sources/KnobsHelper"),
+        .executableTarget(name: "Knobs", dependencies: ["KnobsKit"], path: "Sources/Knobs"),
+        .executableTarget(name: "smcprobe", dependencies: ["CSMC"], path: "Sources/smcprobe"),
     ]
 )

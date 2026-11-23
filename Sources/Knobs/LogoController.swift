@@ -10,6 +10,8 @@ final class LogoController: ObservableObject {
     @Published var errorMessage: String?
 
     private let storeKey = "logoIsOn"
+    /// When the privileged helper is installed, toggling needs no password prompt.
+    weak var helper: HelperClient?
 
     init() {
         if let stored = UserDefaults.standard.object(forKey: storeKey) as? Bool {
@@ -27,8 +29,10 @@ final class LogoController: ObservableObject {
         errorMessage = nil
         let value = on ? 1 : 0
 
+        let viaHelper = helper?.isReady == true ? helper : nil
         Task.detached(priority: .userInitiated) {
-            let result = Self.runPrivileged(value: value)
+            let result: RunResult
+            if let viaHelper, await viaHelper.setLogoLight(on) { result = .success } else { result = Self.runPrivileged(value: value) }
             await MainActor.run {
                 self.isWorking = false
                 switch result {

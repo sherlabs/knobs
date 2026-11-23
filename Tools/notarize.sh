@@ -1,6 +1,6 @@
 #!/bin/bash
-# Signs (Developer ID + hardened runtime), notarizes and staples build/GlowBar.app,
-# then writes build/GlowBar-<version>-macOS.zip. Run ./build.sh first.
+# Signs (Developer ID + hardened runtime), notarizes and staples build/Knobs.app,
+# then writes build/Knobs-<version>-macOS.zip. Run ./build.sh first.
 #
 # Required env:
 #   SIGN_IDENTITY       e.g. "Developer ID Application: Your Name (TEAMID)"
@@ -10,12 +10,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 : "${SIGN_IDENTITY:?}" "${APPLE_API_KEY_ID:?}" "${APPLE_API_KEY_PATH:?}" "${APPLE_API_ISSUER:?}"
-VERSION="${1:-1.0.0}"
-APP="build/GlowBar.app"
-SUBMIT_ZIP="build/GlowBar-submit.zip"
-FINAL_ZIP="build/GlowBar-${VERSION}-macOS.zip"
+VERSION="${1:-2.0.0}"
+APP="build/Knobs.app"
+SUBMIT_ZIP="build/Knobs-submit.zip"
+FINAL_ZIP="build/Knobs-${VERSION}-macOS.zip"
 
-codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+# build.sh signs the helper and app inside-out when SIGN_IDENTITY is set.
 codesign --verify --strict --verbose=2 "$APP"
 
 rm -f "$SUBMIT_ZIP"
