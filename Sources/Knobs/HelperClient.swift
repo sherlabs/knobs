@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import ServiceManagement
 import KnobsKit
 
@@ -14,7 +15,25 @@ final class HelperClient: ObservableObject {
     private var connection: NSXPCConnection?
     private let service = SMAppService.daemon(plistName: KnobsConstants.helperPlist)
 
-    init() { refresh() }
+    private var approvalTimer: Timer?
+
+    init() {
+        refresh()
+        // Coming back from System Settings: pick up the approval without any extra click.
+        NotificationCenter.default.addObserver(forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
+    /// One-time setup at first launch: register the helper and send the user to Login Items to
+    /// approve it. After that, every action (fans, logo light) runs without another prompt.
+    func firstLaunchSetup() {
+        let key = "helperSetupOffered"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        guard state == .notInstalled || state == .needsApproval else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        enable()
+    }
 
     var isReady: Bool { state == .ready }
 
@@ -27,10 +46,22 @@ final class HelperClient: ObservableObject {
         case .enabled:
             state = .ready
             Task { await self.ensureCurrent() }
-        case .requiresApproval: state = .needsApproval
+        case .requiresApproval:
+            state = .needsApproval
+            watchForApproval()
         case .notRegistered: state = .notInstalled
         case .notFound: state = .unavailable("Helper is missing from this build.")
         @unknown default: state = .notInstalled
+        }
+    }
+
+    private func watchForApproval() {
+        guard approvalTimer == nil else { return }
+        approvalTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] t in
+            Task { @MainActor in
+                guard let self else { t.invalidate(); return }
+                if self.service.status != .requiresApproval { t.invalidate(); self.approvalTimer = nil; self.refresh() }
+            }
         }
     }
 

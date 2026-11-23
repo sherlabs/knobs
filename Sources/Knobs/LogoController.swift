@@ -25,8 +25,19 @@ final class LogoController: ObservableObject {
 
     func set(_ on: Bool) {
         guard !isWorking, on != isOn else { return }
-        isWorking = true
         errorMessage = nil
+        // Prefer the privileged helper: no password prompt, ever. Only an unsigned dev build
+        // (helper unavailable) falls back to the macOS admin prompt.
+        if let helper {
+            switch helper.state {
+            case .notInstalled, .needsApproval:
+                helper.enable()
+                errorMessage = "Allow Knobs in System Settings \u{2192} Login Items (one time), then try again."
+                return
+            case .ready, .unavailable: break
+            }
+        }
+        isWorking = true
         let value = on ? 1 : 0
 
         let viaHelper = helper?.isReady == true ? helper : nil
