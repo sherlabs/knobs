@@ -15,13 +15,8 @@ func render(size: Int) -> Data {
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
     let ctx = NSGraphicsContext.current!.cgContext
 
-    // Flat palette
-    let ink = rgb(0.075, 0.075, 0.085)        // #131316 graphite background
-    let white = rgb(1, 1, 1)
-    let accent = rgb(1, 1, 1)                 // white
-    let track = rgb(1, 1, 1, 0.16)
-
-    // macOS icon grid, flat squircle
+    // Flat: graphite square, faint ring, white knob, one notch.
+    let ink = rgb(0.09, 0.09, 0.11)
     let inset = s * 0.098
     let rect = CGRect(x: inset, y: inset, width: s - 2 * inset, height: s - 2 * inset)
     let squircle = NSBezierPath(roundedRect: rect, xRadius: rect.width * 0.225, yRadius: rect.width * 0.225)
@@ -29,33 +24,16 @@ func render(size: Int) -> Data {
     squircle.fill()
     let c = CGPoint(x: s / 2, y: s / 2)
 
-    // Arc: 270 degrees, open at the bottom
-    let arcR = s * 0.315
-    let arcW = s * 0.05
-    let startDeg: CGFloat = 225, sweep: CGFloat = 270
-    func arc(to t: CGFloat, color: CGColor) {
-        let path = CGMutablePath()
-        path.addArc(center: c, radius: arcR, startAngle: startDeg * .pi / 180,
-                    endAngle: (startDeg - sweep * t) * .pi / 180, clockwise: true)
-        ctx.addPath(path)
-        ctx.setStrokeColor(color); ctx.setLineWidth(arcW); ctx.setLineCap(.round)
-        ctx.strokePath()
-    }
-    arc(to: 1, color: track)
-    let level: CGFloat = 0.7
-    arc(to: level, color: accent)
+    let ringR = s * 0.315
+    ctx.setStrokeColor(rgb(1, 1, 1, 0.25)); ctx.setLineWidth(s * 0.016)
+    ctx.strokeEllipse(in: CGRect(x: c.x - ringR, y: c.y - ringR, width: 2 * ringR, height: 2 * ringR))
 
-    // Knob: a plain white disc
-    let r = s * 0.205
-    ctx.setFillColor(rgb(0.90, 0.90, 0.92))
+    let r = s * 0.235
+    ctx.setFillColor(rgb(1, 1, 1))
     ctx.fillEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
 
-    // Indicator notch in the ink colour, pointing at the end of the lit arc
-    let a = (startDeg - sweep * level) * .pi / 180
-    ctx.setStrokeColor(ink); ctx.setLineWidth(s * 0.036); ctx.setLineCap(.round)
-    ctx.move(to: CGPoint(x: c.x + cos(a) * r * 0.30, y: c.y + sin(a) * r * 0.30))
-    ctx.addLine(to: CGPoint(x: c.x + cos(a) * r * 0.74, y: c.y + sin(a) * r * 0.74))
-    ctx.strokePath()
+    ctx.setStrokeColor(ink); ctx.setLineWidth(s * 0.04); ctx.setLineCap(.round)
+    ctx.move(to: CGPoint(x: c.x, y: c.y + s * 0.07)); ctx.addLine(to: CGPoint(x: c.x, y: c.y + s * 0.17)); ctx.strokePath()
 
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])!

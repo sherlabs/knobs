@@ -1,21 +1,31 @@
 import SwiftUI
+import AppKit
 
 /// Shared glassmorphism pieces.
 enum Theme {
-    static let accent = Color(red: 0.55, green: 0.84, blue: 1.0)
-    static let warm = Color(red: 1.0, green: 0.66, blue: 0.36)
-    static let hot = Color(red: 1.0, green: 0.42, blue: 0.42)
+    static let accent = Color.white
+    static let warm = Color(red: 1.0, green: 0.70, blue: 0.40)
+    static let hot = Color(red: 1.0, green: 0.45, blue: 0.45)
+}
+
+/// Native macOS frosted glass (real vibrancy), not a painted gradient.
+struct VisualEffect: NSViewRepresentable {
+    var material: NSVisualEffectView.Material = .hudWindow
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = material; v.blendingMode = .behindWindow; v.state = .active
+        return v
+    }
+    func updateNSView(_ v: NSVisualEffectView, context: Context) { v.material = material }
 }
 
 struct GlassBackground: View {
     var body: some View {
         ZStack {
-            // Deep indigo glass, brighter toward the top like the reference
-            LinearGradient(colors: [Color(red: 0.20, green: 0.12, blue: 0.50), Color(red: 0.09, green: 0.05, blue: 0.27), Color(red: 0.04, green: 0.03, blue: 0.14)],
-                           startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [Color(red: 0.45, green: 0.35, blue: 0.95).opacity(0.28), .clear], center: .topTrailing, startRadius: 0, endRadius: 320)
+            VisualEffect()
+            Color.black.opacity(0.22)
+            LinearGradient(colors: [.white.opacity(0.07), .clear], startPoint: .top, endPoint: .center)
         }
-        .overlay(Rectangle().fill(.ultraThinMaterial).opacity(0.25))
     }
 }
 
@@ -47,7 +57,7 @@ struct GlassSwitch: View {
             ZStack(alignment: isOn ? .trailing : .leading) {
                 Capsule().fill(.ultraThinMaterial)
                     .overlay(Capsule().fill(LinearGradient(
-                        colors: isOn ? [Theme.accent.opacity(0.95), Theme.accent.opacity(0.80)] : [.white.opacity(0.08), .white.opacity(0.02)],
+                        colors: isOn ? [.white.opacity(0.92), .white.opacity(0.78)] : [.white.opacity(0.08), .white.opacity(0.02)],
                         startPoint: .leading, endPoint: .trailing)))
                     .overlay(Capsule().strokeBorder(.white.opacity(0.3), lineWidth: 1))
                 Circle().fill(isOn ? Color(white: 0.16) : Color.white.opacity(0.9)).shadow(color: .black.opacity(0.3), radius: 3, y: 1)
