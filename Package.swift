@@ -14,6 +14,6 @@ let package = Package(
         .target(name: "KnobsKit", dependencies: ["CSMC"], path: "Sources/KnobsKit"),
         .executableTarget(name: "KnobsHelper", dependencies: ["KnobsKit"], path: "Sources/KnobsHelper"),
         .executableTarget(name: "Knobs", dependencies: ["KnobsKit"], path: "Sources/Knobs"),
-        .executableTarget(name: "smcprobe", dependencies: ["CSMC"], path: "Sources/smcprobe"),
+        .executableTarget(name: "smcprobe", dependencies: ["CSMC", "KnobsKit"], path: "Sources/smcprobe"),
     ]
 )

@@ -1,5 +1,6 @@
 import Foundation
 import CSMC
+import KnobsKit
 
 // Read-only probe: what does this Mac's SMC expose for fans and temperatures?
 func code(_ v: UInt32) -> String {
@@ -19,6 +20,14 @@ func decode(_ v: CSMCValue) -> String {
         default: return "0x" + (0..<n).map { String(format: "%02x", p[$0]) }.joined()
         }
     }
+}
+
+if CommandLine.arguments.contains("--stats") {
+    SMC.shared.open()
+    _ = SystemStats.shared.sample(); sleep(1)
+    let x = SystemStats.shared.sample()
+    print("cpu=\(x.cpuLoad as Any) gpu=\(x.gpuLoad as Any) mem=\(x.memoryUsed as Any) pressure=\(x.memoryPressure) batt=\(x.batteryLevel as Any) charging=\(x.isCharging) ac=\(x.onACPower) watts=\(x.systemPowerWatts as Any)")
+    exit(0)
 }
 
 let r = csmc_open()
