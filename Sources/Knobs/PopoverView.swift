@@ -99,12 +99,20 @@ struct PopoverView: View {
 
     // MARK: switches
 
-    private var group: some View {
+    @ViewBuilder private var group: some View {
+        if Capabilities.hasLogoLight || Capabilities.hasTouchDisplay { switches }
+    }
+
+    private var switches: some View {
         GroupBox26 {
             VStack(spacing: 0) {
-                switchRow("apple.logo", "Logo Light", Binding(get: { logo.isOn }, set: { _ in logo.toggle() }), busy: logo.isWorking)
-                Divider().padding(.leading, 42)
-                switchRow("hand.point.up.left.fill", "Touch Input", Binding(get: { touch.isEnabled }, set: { _ in touch.toggle() }))
+                if Capabilities.hasLogoLight {
+                    switchRow("apple.logo", "Logo Light", Binding(get: { logo.isOn }, set: { _ in logo.toggle() }), busy: logo.isWorking)
+                }
+                if Capabilities.hasLogoLight && Capabilities.hasTouchDisplay { Divider().padding(.leading, 42) }
+                if Capabilities.hasTouchDisplay {
+                    switchRow("hand.point.up.left.fill", "Touch Input", Binding(get: { touch.isEnabled }, set: { _ in touch.toggle() }))
+                }
                 if let m = logo.errorMessage {
                     Text(m).font(.caption).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)
                 }
