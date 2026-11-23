@@ -29,7 +29,7 @@ struct KnobsApp: App {
                 .environmentObject(fan).environmentObject(updater).environmentObject(monitor)
                 .task { updater.start() }
         } label: {
-            Image(systemName: "dial.medium.fill").symbolRenderingMode(.hierarchical)
+            Image(nsImage: MenuBarIcon.image)
         }
         .menuBarExtraStyle(.window)
     }
@@ -50,4 +50,30 @@ func import_diagnose() {
     }
     print("plist exists:", FileManager.default.fileExists(atPath: Bundle.main.bundlePath + "/Contents/Library/LaunchDaemons/" + KnobsConstants.helperPlist))
     exit(0)
+}
+
+
+/// The app icon as a menu bar template: a ring, a solid knob and its notch. macOS tints it for light and dark.
+enum MenuBarIcon {
+    static let image: NSImage = {
+        let size = NSSize(width: 18, height: 18)
+        let img = NSImage(size: size, flipped: false) { rect in
+            let c = CGPoint(x: rect.midX, y: rect.midY)
+            NSColor.black.setStroke()
+            let ring = NSBezierPath(ovalIn: CGRect(x: c.x - 8, y: c.y - 8, width: 16, height: 16))
+            ring.lineWidth = 1.2
+            ring.stroke()
+            NSColor.black.setFill()
+            NSBezierPath(ovalIn: CGRect(x: c.x - 5.2, y: c.y - 5.2, width: 10.4, height: 10.4)).fill()
+            // notch: knocked out of the knob
+            NSGraphicsContext.current?.compositingOperation = .clear
+            let notch = NSBezierPath()
+            notch.move(to: CGPoint(x: c.x, y: c.y + 1.2)); notch.line(to: CGPoint(x: c.x, y: c.y + 4.2))
+            notch.lineWidth = 1.6; notch.lineCapStyle = .round
+            notch.stroke()
+            return true
+        }
+        img.isTemplate = true
+        return img
+    }()
 }
