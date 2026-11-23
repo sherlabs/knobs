@@ -86,7 +86,7 @@ struct GlassSegments<T: Hashable & Identifiable>: View {
                 Button { withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { selection = item } } label: {
                     HStack(spacing: 5) {
                         if let icon { Image(systemName: icon(item)).font(.system(size: 11, weight: .semibold)) }
-                        Text(label(item)).font(.system(size: 12, weight: .semibold, design: .rounded))
+                        Text(label(item)).font(.system(size: 12, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 7)
                     .foregroundStyle(on ? Color.white : Color.white.opacity(0.55))
@@ -116,7 +116,7 @@ struct GlassButton: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 if let icon { Image(systemName: icon).font(.system(size: 12, weight: .semibold)) }
-                Text(title).font(.system(size: 12, weight: .semibold, design: .rounded))
+                Text(title).font(.system(size: 12, weight: .semibold))
             }
             .padding(.horizontal, 14).padding(.vertical, 8)
             .foregroundStyle(prominent ? Color(white: 0.1) : Color.white)

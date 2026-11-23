@@ -13,21 +13,16 @@ struct PopoverView: View {
     @EnvironmentObject var updater: Updater
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 22) {
             header
             FanKnob()
             fanControls
             stats
-            Divider().overlay(Color.white.opacity(0.12))
-            VStack(spacing: 14) {
-                switchRow("apple.logo", "Logo light", logo.isWorking ? "Applying\u{2026}" : (logo.isOn ? "On" : "Off"), isOn: logo.isOn, busy: logo.isWorking) { logo.toggle() }
-                if let m = logo.errorMessage { Text(m).font(.system(size: 11)).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading) }
-                switchRow("hand.point.up.left.fill", "Touch input", touch.isEnabled ? "On" : "Off", isOn: touch.isEnabled) { touch.toggle() }
-            }
+            group
             footer
         }
-        .padding(22)
-        .frame(width: 320)
+        .padding(.horizontal, 24).padding(.vertical, 22)
+        .frame(width: 328)
         .background(GlassBackground())
         .preferredColorScheme(.dark)
         .onAppear { monitor.start(); fan.startPolling(); touch.refresh(); helper.refresh() }
@@ -38,16 +33,21 @@ struct PopoverView: View {
 
     private var header: some View {
         let t = monitor.temps.cpu
-        let (word, tint): (String, Color) = {
-            guard let t else { return ("", .white.opacity(0.6)) }
-            return t >= 95 ? ("Hot", Theme.hot) : (t >= 82 ? ("Warm", Theme.warm) : ("Cool", .white.opacity(0.6)))
+        let (word, dot): (String, Color) = {
+            guard let t else { return ("", .white.opacity(0.4)) }
+            return t >= 95 ? ("Hot", Theme.hot) : (t >= 82 ? ("Warm", Theme.warm) : ("Cool", Color(white: 0.85)))
         }()
-        return HStack(alignment: .firstTextBaseline) {
-            Text("Knobs").font(.system(size: 15, weight: .semibold, design: .rounded))
+        return HStack {
+            Text("Knobs").font(.system(size: 13, weight: .semibold)).tracking(0.3).foregroundStyle(.white.opacity(0.9))
             Spacer()
             if let t {
-                Text("\(Int(t))\u{00B0}  ").font(.system(size: 13, weight: .semibold, design: .rounded)).monospacedDigit()
-                + Text(word).font(.system(size: 13, weight: .medium, design: .rounded)).foregroundColor(tint)
+                HStack(spacing: 6) {
+                    Circle().fill(dot).frame(width: 6, height: 6)
+                    Text("\(Int(t))\u{00B0} \(word)").font(.system(size: 11.5, weight: .medium)).monospacedDigit().foregroundStyle(.white.opacity(0.85))
+                }
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(Capsule().fill(.white.opacity(0.08)))
+                .overlay(Capsule().strokeBorder(.white.opacity(0.10), lineWidth: 0.5))
             }
         }
     }
@@ -82,34 +82,55 @@ struct PopoverView: View {
     private var stats: some View {
         let s = monitor.sample
         func pct(_ v: Double?) -> String { v.map { "\(Int($0 * 100))%" } ?? "\u{2013}" }
-        return HStack {
+        let power = s.systemPowerWatts.map { "\(Int($0)) W" } ?? (s.batteryLevel.map { "\(Int($0 * 100))%" } ?? "\u{2013}")
+        return HStack(spacing: 0) {
             stat(pct(s.cpuLoad), "CPU")
+            hairline
             stat(pct(s.gpuLoad), "GPU")
-            stat(pct(s.memoryUsed), "Memory")
-            stat(s.systemPowerWatts.map { "\(Int($0)) W" } ?? (s.batteryLevel.map { "\(Int($0 * 100))%" } ?? "\u{2013}"),
-                 s.systemPowerWatts != nil ? "Power" : "Battery")
+            hairline
+            stat(pct(s.memoryUsed), "MEMORY")
+            hairline
+            stat(power, s.systemPowerWatts != nil ? "POWER" : "BATTERY")
         }
     }
 
+    private var hairline: some View { Rectangle().fill(.white.opacity(0.10)).frame(width: 0.5, height: 26) }
+
     private func stat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 3) {
-            Text(value).font(.system(size: 16, weight: .semibold, design: .rounded)).monospacedDigit()
-            Text(label).font(.system(size: 10.5, weight: .medium, design: .rounded)).foregroundStyle(.white.opacity(0.5))
+        VStack(spacing: 4) {
+            Text(value).font(.system(size: 18, weight: .light)).monospacedDigit().numericFlip()
+            Text(label).font(.system(size: 9, weight: .semibold)).tracking(0.9).foregroundStyle(.white.opacity(0.42))
         }.frame(maxWidth: .infinity)
     }
 
-    // MARK: switches
+    // MARK: switches (one grouped glass list)
+
+    private var group: some View {
+        VStack(spacing: 0) {
+            switchRow("apple.logo", "Logo light", logo.isWorking ? "Applying\u{2026}" : (logo.isOn ? "On" : "Off"), isOn: logo.isOn, busy: logo.isWorking) { logo.toggle() }
+            Rectangle().fill(.white.opacity(0.08)).frame(height: 0.5).padding(.leading, 56)
+            switchRow("hand.point.up.left.fill", "Touch input", touch.isEnabled ? "On" : "Off", isOn: touch.isEnabled) { touch.toggle() }
+            if let m = logo.errorMessage {
+                Text(m).font(.system(size: 11)).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 14).padding(.bottom, 10)
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.white.opacity(0.06)))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(LinearGradient(colors: [.white.opacity(0.22), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom), lineWidth: 0.75))
+    }
 
     private func switchRow(_ icon: String, _ title: String, _ state: String, isOn: Bool, busy: Bool = false, _ action: @escaping () -> Void) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon).font(.system(size: 15)).frame(width: 22).foregroundStyle(.white.opacity(isOn ? 0.95 : 0.45))
+            Image(systemName: icon).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(isOn ? 0.95 : 0.5))
+                .frame(width: 30, height: 30)
+                .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.white.opacity(isOn ? 0.14 : 0.07)))
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 14, weight: .medium, design: .rounded))
-                Text(state).font(.system(size: 11.5, design: .rounded)).foregroundStyle(.white.opacity(0.5))
+                Text(title).font(.system(size: 13.5, weight: .medium))
+                Text(state).font(.system(size: 11)).foregroundStyle(.white.opacity(0.45))
             }
             Spacer()
             GlassSwitch(isOn: isOn, busy: busy, action: action)
         }
+        .padding(.horizontal, 14).padding(.vertical, 11)
     }
 
     // MARK: footer
@@ -119,12 +140,12 @@ struct PopoverView: View {
             switch updater.state {
             case .available(let r):
                 Button { Task { await updater.install(r) } } label: {
-                    Text("Update to \(r.version)").font(.system(size: 12, weight: .semibold, design: .rounded))
+                    Text("Update to \(r.version)").font(.system(size: 12, weight: .semibold))
                         .padding(.horizontal, 12).padding(.vertical, 6).background(Capsule().fill(.white.opacity(0.92))).foregroundStyle(Color(white: 0.1))
                 }.buttonStyle(.plain)
-            case .working(let step): Text(step).font(.system(size: 12, design: .rounded)).foregroundStyle(.white.opacity(0.6))
+            case .working(let step): Text(step).font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
             case .failed(let m): Text(m).font(.system(size: 11)).foregroundStyle(Theme.warm).lineLimit(2)
-            default: Text("Version \(updater.currentVersion)").font(.system(size: 11.5, design: .rounded)).foregroundStyle(.white.opacity(0.4))
+            default: Text("Version \(updater.currentVersion)").font(.system(size: 11.5)).foregroundStyle(.white.opacity(0.4))
             }
             Spacer()
             Menu {
@@ -149,8 +170,10 @@ struct FanKnob: View {
     @EnvironmentObject var fan: FanController
     @EnvironmentObject var helper: HelperClient
     @State private var lastSend = Date.distantPast
-    private let size: CGFloat = 176
+    @State private var pressed = false
+    private let size: CGFloat = 196
     private let startDeg = 225.0, sweep = 270.0
+    private let ticks = 61
 
     private var fraction: Double {
         switch fan.mode {
@@ -163,46 +186,77 @@ struct FanKnob: View {
     }
     private var rpm: Int { Int((fan.fans.map(\.actual).max() ?? 0).rounded()) }
     private var interactive: Bool { helper.state == .ready }
+    private var capSize: CGFloat { size - 62 }
 
     var body: some View {
         ZStack {
-            Circle().trim(from: 0, to: sweep / 360).stroke(.white.opacity(0.10), style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .rotationEffect(.degrees(135)).frame(width: size, height: size)
-            Circle().trim(from: 0, to: max(0.004, fraction * sweep / 360))
-                .stroke(.white.opacity(fan.mode == .auto ? 0.5 : 0.95), style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .rotationEffect(.degrees(135)).frame(width: size, height: size)
-                .animation(.easeOut(duration: 0.35), value: fraction)
-            // knob cap
-            Circle().fill(.white.opacity(0.08))
-                .overlay(Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 1))
-                .frame(width: size - 40, height: size - 40)
-                .shadow(color: .black.opacity(0.25), radius: 10, y: 5)
-            // indicator
-            Circle().fill(.white).frame(width: 8, height: 8)
-                .offset(y: -(size - 40) / 2 + 14)
+            // soft halo behind the dial while the user is in control
+            Circle().fill(.white.opacity(fan.mode == .auto ? 0.0 : 0.10)).blur(radius: 26).frame(width: capSize, height: capSize)
+                .animation(.easeOut(duration: 0.4), value: fan.mode)
+
+            // machined tick ring
+            Canvas { ctx, sz in
+                let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
+                let outer = sz.width / 2 - 2
+                for i in 0..<ticks {
+                    let t = Double(i) / Double(ticks - 1)
+                    let a = (startDeg - sweep * t) * .pi / 180
+                    let major = i % 10 == 0
+                    let len: CGFloat = major ? 11 : 7
+                    var p = Path()
+                    p.move(to: CGPoint(x: c.x + cos(a) * (outer - len), y: c.y - sin(a) * (outer - len)))
+                    p.addLine(to: CGPoint(x: c.x + cos(a) * outer, y: c.y - sin(a) * outer))
+                    let lit = t <= fraction + 0.0001
+                    let alpha = lit ? (fan.mode == .auto ? 0.55 : 0.98) : 0.14
+                    ctx.stroke(p, with: .color(.white.opacity(alpha)), style: StrokeStyle(lineWidth: major ? 2 : 1.4, lineCap: .round))
+                }
+            }
+            .frame(width: size, height: size)
+            .animation(.easeOut(duration: 0.3), value: fraction)
+
+            // cap: dark glass with a faint machined sheen
+            Circle().fill(Color.black.opacity(0.28))
+                .overlay(Circle().fill(AngularGradient(colors: [.white.opacity(0.16), .white.opacity(0.02), .white.opacity(0.12), .white.opacity(0.02), .white.opacity(0.16)], center: .center)))
+                .overlay(Circle().strokeBorder(LinearGradient(colors: [.white.opacity(0.40), .white.opacity(0.04)], startPoint: .top, endPoint: .bottom), lineWidth: 1))
+                .frame(width: capSize, height: capSize)
+                .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
+                .scaleEffect(pressed ? 0.985 : 1)
+
+            // notch
+            Capsule().fill(.white).frame(width: 3, height: 13)
+                .offset(y: -capSize / 2 + 12)
                 .rotationEffect(.degrees(-135 + fraction * sweep))
-                .animation(.easeOut(duration: 0.35), value: fraction)
-            VStack(spacing: 0) {
-                Text(rpm > 0 ? rpm.formatted() : "\u{2013}").font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
-                Text("RPM").font(.system(size: 10.5, weight: .semibold, design: .rounded)).foregroundStyle(.white.opacity(0.5))
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: fraction)
+
+            VStack(spacing: 2) {
+                Text(rpm > 0 ? rpm.formatted() : "\u{2013}").font(.system(size: 34, weight: .thin)).monospacedDigit().numericFlip()
+                Text("RPM").font(.system(size: 9.5, weight: .semibold)).tracking(1.2).foregroundStyle(.white.opacity(0.45))
             }
         }
         .frame(width: size, height: size)
         .contentShape(Circle())
-        .gesture(DragGesture(minimumDistance: 0).onChanged { v in turn(to: v.location, final: false) }.onEnded { v in turn(to: v.location, final: true) },
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged { v in pressed = true; turn(to: v.location, final: false) }
+            .onEnded { v in pressed = false; turn(to: v.location, final: true) },
                  including: interactive ? .all : .subviews)
-        .opacity(interactive || fan.fans.isEmpty == false ? 1 : 0.6)
         .help(interactive ? "Drag to set fan speed" : "Fan speed (monitor only)")
     }
 
     private func turn(to p: CGPoint, final: Bool) {
         let dx = p.x - size / 2, dy = -(p.y - size / 2)
-        guard hypot(dx, dy) > 14 else { return }
+        guard hypot(dx, dy) > 16 else { return }
         var theta = atan2(dy, dx) * 180 / .pi; if theta < 0 { theta += 360 }
         var delta = startDeg - theta; if delta < 0 { delta += 360 }
         let f: Double = delta <= sweep ? delta / sweep : (delta < sweep + (360 - sweep) / 2 ? 1 : 0)
         fan.manualFraction = f
         if fan.mode != .manual { fan.choose(.manual) }
         if final || Date().timeIntervalSince(lastSend) > 0.3 { lastSend = Date(); fan.commitManual() }
+    }
+}
+
+private extension View {
+    /// Digits roll instead of snapping (macOS 14+); a no-op on 13.
+    @ViewBuilder func numericFlip() -> some View {
+        if #available(macOS 14.0, *) { self.contentTransition(.numericText()) } else { self }
     }
 }
