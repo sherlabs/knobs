@@ -13,7 +13,7 @@ struct PopoverView: View {
     @EnvironmentObject var updater: Updater
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             header
             FanKnob()
             fanControls
@@ -37,13 +37,18 @@ struct PopoverView: View {
             return t >= 95 ? ("Hot", Theme.hot) : (t >= 82 ? ("Warm", Theme.warm) : ("Normal", .green))
         }()
         return HStack {
-            Text("Knobs").font(.headline)
+            Text("Knobs").font(.system(.title3, design: .rounded).weight(.semibold))
             Spacer()
             if let t {
                 HStack(spacing: 6) {
-                    Circle().fill(dot).frame(width: 7, height: 7)
-                    Text("CPU \(Int(t))\u{00B0} \u{00B7} \(word)").font(.subheadline).monospacedDigit().foregroundStyle(.secondary)
+                    Circle().fill(dot).frame(width: 6, height: 6).shadow(color: dot.opacity(0.7), radius: 3)
+                    Text("\(Int(t))\u{00B0}").font(.caption.weight(.semibold)).monospacedDigit()
+                    Text(word).font(.caption).foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(Capsule().fill(Color.primary.opacity(0.07)))
+                .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5))
+                .help("CPU temperature")
             }
         }
     }
@@ -65,15 +70,27 @@ struct PopoverView: View {
         case .notInstalled:
             setup("Fan control needs a one-time approval.", "Set Up\u{2026}")
         case .unavailable(let why):
-            Text(why + " Monitoring still works.").font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle").font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary)
+                Text(why + " Monitoring still works.").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 4)
         }
     }
 
     private func setup(_ text: String, _ button: String) -> some View {
-        VStack(spacing: 8) {
-            Text(text).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            Button(button) { helper.enable() }.buttonStyle(.borderedProminent).controlSize(.regular)
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "lock.shield").font(.title2).symbolRenderingMode(.hierarchical)
+                .foregroundStyle(Color.accentColor).frame(width: 28)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(text).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Button(button) { helper.enable() }.buttonStyle(.borderedProminent).controlSize(.small)
+            }
+            Spacer(minLength: 0)
         }
+        .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+        .surface()
     }
 
     // MARK: numbers
@@ -84,16 +101,23 @@ struct PopoverView: View {
         let power = s.systemPowerWatts.map { "\(Int($0)) W" } ?? (s.batteryLevel.map { "\(Int($0 * 100))%" } ?? "\u{2013}")
         return HStack(spacing: 0) {
             stat(pct(s.cpuLoad), "CPU")
+            statDivider
             stat(pct(s.gpuLoad), "GPU")
+            statDivider
             stat(pct(s.memoryUsed), "Memory")
+            statDivider
             stat(power, s.systemPowerWatts != nil ? "Power" : "Battery")
         }
+        .padding(.vertical, 11)
+        .surface()
     }
 
+    private var statDivider: some View { Rectangle().fill(Color.primary.opacity(0.10)).frame(width: 0.5, height: 28) }
+
     private func stat(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value).font(.title3.weight(.medium)).monospacedDigit().numericFlip()
-            Text(label).font(.caption).foregroundStyle(.secondary)
+        VStack(spacing: 3) {
+            Text(value).font(.system(.title3, design: .rounded).weight(.semibold)).monospacedDigit().numericFlip()
+            Text(label.uppercased()).font(.system(size: 10, weight: .semibold)).tracking(0.6).foregroundStyle(.secondary)
         }.frame(maxWidth: .infinity)
     }
 
@@ -104,8 +128,7 @@ struct PopoverView: View {
     }
 
     private var switches: some View {
-        GroupBox26 {
-            VStack(spacing: 0) {
+        VStack(spacing: 0) {
                 if Capabilities.hasLogoLight {
                     switchRow("apple.logo", "Logo Light", Binding(get: { logo.isOn }, set: { _ in logo.toggle() }), busy: logo.isWorking)
                 }
@@ -116,19 +139,19 @@ struct PopoverView: View {
                 if let m = logo.errorMessage {
                     Text(m).font(.caption).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)
                 }
-            }
         }
+        .surface()
     }
 
     private func switchRow(_ icon: String, _ title: String, _ isOn: Binding<Bool>, busy: Bool = false) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: icon).font(.body).foregroundStyle(.secondary).frame(width: 22)
-            Text(title)
+            Image(systemName: icon).font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary).frame(width: 22)
+            Text(title).font(.callout)
             Spacer()
             if busy { ProgressView().controlSize(.small) }
             Toggle(title, isOn: isOn).toggleStyle(.switch).labelsHidden().controlSize(.small).disabled(busy)
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
+        .padding(.horizontal, 12).padding(.vertical, 9)
     }
 
     // MARK: footer
@@ -140,7 +163,7 @@ struct PopoverView: View {
                 Button("Update to \(r.version)") { Task { await updater.install(r) } }.buttonStyle(.borderedProminent).controlSize(.small)
             case .working(let step): Text(step).font(.caption).foregroundStyle(.secondary)
             case .failed(let m): Text(m).font(.caption).foregroundStyle(Theme.warm).lineLimit(2)
-            default: Text("Version \(updater.currentVersion)").font(.caption).foregroundStyle(.secondary)
+            default: Text("v\(updater.currentVersion)").monospacedDigit().font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
             Menu {
@@ -166,7 +189,8 @@ struct FanKnob: View {
     @EnvironmentObject var helper: HelperClient
     @State private var lastSend = Date.distantPast
     @State private var pressed = false
-    private let size: CGFloat = 196
+    @Environment(\.colorScheme) private var scheme
+    private let size: CGFloat = 212
     private let startDeg = 225.0, sweep = 270.0
     private let ticks = 61
 
@@ -181,15 +205,16 @@ struct FanKnob: View {
     }
     private var rpm: Int { Int((fan.fans.map(\.actual).max() ?? 0).rounded()) }
     private var interactive: Bool { helper.state == .ready }
-    private var capSize: CGFloat { size - 40 }
+    private var capSize: CGFloat { size - 56 }
+    private var modeLabel: String { fan.mode == .auto ? "Automatic" : (fan.mode == .full ? "Full blast" : "Manual") }
 
     var body: some View {
         ZStack {
             // soft halo behind the dial while the user is in control
-            Circle().fill(Color.accentColor.opacity(fan.mode == .auto ? 0.0 : 0.18)).blur(radius: 26).frame(width: capSize, height: capSize)
+            Circle().fill(Color.accentColor.opacity(fan.mode == .auto ? 0.0 : 0.22)).blur(radius: 28).frame(width: capSize + 20, height: capSize + 20)
                 .animation(.easeOut(duration: 0.4), value: fan.mode)
 
-            // machined tick ring
+            // machined tick ring: lit ticks warm up toward the current value
             Canvas { ctx, sz in
                 let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
                 let outer = sz.width / 2 - 2
@@ -197,37 +222,47 @@ struct FanKnob: View {
                     let t = Double(i) / Double(ticks - 1)
                     let a = (startDeg - sweep * t) * .pi / 180
                     let major = i % 10 == 0
-                    let len: CGFloat = major ? 11 : 7
+                    let len: CGFloat = major ? 12 : 7
                     var p = Path()
                     p.move(to: CGPoint(x: c.x + cos(a) * (outer - len), y: c.y - sin(a) * (outer - len)))
                     p.addLine(to: CGPoint(x: c.x + cos(a) * outer, y: c.y - sin(a) * outer))
                     let lit = t <= fraction + 0.0001
-                    let alpha = lit ? (fan.mode == .auto ? 0.55 : 1.0) : 0.18
-                    ctx.stroke(p, with: .color((lit ? Color.accentColor : Color.primary).opacity(alpha)), style: StrokeStyle(lineWidth: major ? 2 : 1.4, lineCap: .round))
+                    let strength = fan.mode == .auto ? 0.5 : 0.7
+                    let alpha = lit ? strength + (1 - strength) * (fraction > 0 ? t / max(fraction, 0.01) : 0) : (major ? 0.30 : 0.16)
+                    ctx.stroke(p, with: .color((lit ? Color.accentColor : Color.primary).opacity(alpha)), style: StrokeStyle(lineWidth: major ? 2.2 : 1.5, lineCap: .round))
                 }
             }
             .frame(width: size, height: size)
             .animation(.easeOut(duration: 0.3), value: fraction)
 
-            // cap: system material with a hairline edge
-            Circle().fill(.regularMaterial)
-                .overlay(Circle().strokeBorder(.separator, lineWidth: 0.75))
-                .frame(width: capSize, height: capSize)
-                .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
+            // cap: system material with a specular rim
+            cap
                 .scaleEffect(pressed ? 0.985 : 1)
+                .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
 
             // notch
-            Capsule().fill(Color.accentColor).frame(width: 3, height: 9)
-                .offset(y: -capSize / 2 + 10)
+            Capsule().fill(Color.accentColor).frame(width: 3.5, height: 10)
+                .shadow(color: Color.accentColor.opacity(0.6), radius: 3)
+                .offset(y: -capSize / 2 + 11)
                 .rotationEffect(.degrees(-135 + fraction * sweep))
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: fraction)
 
-            VStack(spacing: 2) {
-                Text(rpm > 0 ? rpm.formatted() : "\u{2013}").font(.system(size: 32, weight: .light)).monospacedDigit().numericFlip()
-                Text("RPM").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+            VStack(spacing: 3) {
+                Text(rpm > 0 ? rpm.formatted() : "\u{2013}")
+                    .font(.system(size: 40, weight: .light, design: .rounded)).monospacedDigit().numericFlip()
+                Text("RPM").font(.system(size: 10, weight: .semibold)).tracking(1.2).foregroundStyle(.secondary)
+                Text(modeLabel).font(.caption2.weight(.medium))
+                    .foregroundStyle(fan.mode == .auto ? Color.secondary : Color.accentColor)
+                    .padding(.top, 4)
             }
+
+            // range captions under the open end of the arc
+            Text("MIN").font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(.tertiary)
+                .offset(x: -size * 0.27, y: size * 0.46)
+            Text("MAX").font(.system(size: 9, weight: .semibold)).tracking(0.8).foregroundStyle(.tertiary)
+                .offset(x: size * 0.27, y: size * 0.46)
         }
-        .frame(width: size, height: size)
+        .frame(width: size, height: size + 8)
         .contentShape(Circle())
         .gesture(DragGesture(minimumDistance: 0)
             .onChanged { v in pressed = true; turn(to: v.location, final: false) }
@@ -236,8 +271,20 @@ struct FanKnob: View {
         .help(interactive ? "Drag to set fan speed" : "Fan speed (monitor only)")
     }
 
+    @ViewBuilder private var cap: some View {
+        let rim = LinearGradient(colors: [Color.white.opacity(scheme == .dark ? 0.28 : 0.9), Color.white.opacity(0.0), Color.black.opacity(0.10)],
+                                 startPoint: .top, endPoint: .bottom)
+        do {
+            Circle().fill(.regularMaterial)
+                .overlay(Circle().fill(LinearGradient(colors: [Color.white.opacity(scheme == .dark ? 0.10 : 0.45), .clear], startPoint: .top, endPoint: .bottom)))
+                .overlay(Circle().strokeBorder(rim, lineWidth: 1))
+                .frame(width: capSize, height: capSize)
+                .shadow(color: .black.opacity(0.20), radius: 12, y: 6)
+        }
+    }
+
     private func turn(to p: CGPoint, final: Bool) {
-        let dx = p.x - size / 2, dy = -(p.y - size / 2)
+        let dx = p.x - size / 2, dy = -(p.y - (size + 8) / 2)
         guard hypot(dx, dy) > 16 else { return }
         var theta = atan2(dy, dx) * 180 / .pi; if theta < 0 { theta += 360 }
         var delta = startDeg - theta; if delta < 0 { delta += 360 }

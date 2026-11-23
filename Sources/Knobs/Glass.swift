@@ -28,3 +28,8 @@ struct GroupBox26<Content: View>: View {
             .overlay(shape.strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5))
     }
 }
+
+extension View {
+    /// The one grouped surface used for stats, switches and the setup prompt.
+    func surface() -> some View { GroupBox26 { self } }
+}

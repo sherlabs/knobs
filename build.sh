@@ -5,8 +5,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-VERSION="${VERSION:-2.0.4}"
-BUILD="${BUILD:-7}"
+VERSION="${VERSION:-2.1.0}"
+BUILD="${BUILD:-8}"
 # SwiftUI's macros ship with Xcode, not the Command Line Tools.
 if [ -d /Applications/Xcode.app ]; then export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer; fi
 
