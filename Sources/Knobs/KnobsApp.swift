@@ -52,6 +52,15 @@ func import_diagnose() {
         do { try svc.register(); print("register: ok") } catch { print("register error:", error, (error as NSError).domain, (error as NSError).code) }
         print("status after:", svc.status.rawValue)
     }
+    if CommandLine.arguments.contains("--touch-test") {
+        MainActor.assumeIsolated {
+            let t = TouchController()
+            let was = t.isEnabled
+            print("touch enabled before:", was)
+            t.set(!was); print("after toggle:", t.isEnabled)
+            t.set(was); print("restored:", t.isEnabled)
+        }
+    }
     if CommandLine.arguments.contains("--reregister") {
         let sem = DispatchSemaphore(value: 0)
         Task { try? await svc.unregister(); try? await Task.sleep(nanoseconds: 800_000_000); try? svc.register(); print("re-registered, status:", svc.status.rawValue); sem.signal() }
