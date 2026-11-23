@@ -24,8 +24,8 @@ struct PopoverView: View {
         .padding(16)
         .frame(width: 320)
         .background(VisualEffect())
-        .onAppear { monitor.start(); fan.startPolling(); touch.refresh(); helper.refresh(); Task { await updater.checkIfStale() } }
-        .onDisappear { fan.stopPolling() }
+        .onAppear { monitor.start(); fan.startPolling(); touch.startWatching(); helper.refresh(); Task { await updater.checkIfStale() } }
+        .onDisappear { fan.stopPolling(); touch.stopWatching() }
     }
 
     // MARK: header
@@ -134,7 +134,7 @@ struct PopoverView: View {
                 }
                 if Capabilities.hasLogoLight && Capabilities.hasTouchDisplay { Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 0.5).padding(.leading, 42) }
                 if Capabilities.hasTouchDisplay {
-                    switchRow("hand.point.up.left.fill", "Ignore Touch Gestures", Binding(get: { !touch.isEnabled }, set: { _ in touch.toggle() }))
+                    switchRow("hand.point.up.left.fill", "Ignore Touch Gestures", Binding(get: { !touch.isEnabled }, set: { ignore in touch.set(!ignore) }))
                 }
                 if let m = touch.error {
                     Text(m).font(.caption).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)
@@ -146,17 +146,18 @@ struct PopoverView: View {
         .surface()
     }
 
+    /// The whole row is the toggle's label, so a click anywhere on it flips the switch exactly once.
     private func switchRow(_ icon: String, _ title: String, _ isOn: Binding<Bool>, busy: Bool = false) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary).frame(width: 22)
-            Text(title).font(.callout)
-            Spacer()
-            if busy { ProgressView().controlSize(.small) }
-            Toggle(title, isOn: isOn).toggleStyle(.switch).labelsHidden().controlSize(.small).disabled(busy)
+        Toggle(isOn: isOn) {
+            HStack(spacing: 10) {
+                Image(systemName: icon).font(.system(size: 13, weight: .medium)).foregroundStyle(.secondary).frame(width: 22)
+                Text(title).font(.callout)
+                Spacer()
+                if busy { ProgressView().controlSize(.small) }
+            }
         }
+        .toggleStyle(.switch).controlSize(.small).disabled(busy)
         .padding(.horizontal, 12).padding(.vertical, 9)
-        .contentShape(Rectangle())
-        .onTapGesture { if !busy { isOn.wrappedValue.toggle() } }
     }
 
     // MARK: footer

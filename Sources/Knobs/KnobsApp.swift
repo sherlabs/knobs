@@ -59,6 +59,7 @@ func import_diagnose() {
             let t = TouchController()
             let was = t.isEnabled
             print("touch enabled before:", was)
+            for i in 1...4 { t.toggle(); print("toggle \(i): isEnabled =", t.isEnabled, "error:", t.error ?? "none"); Thread.sleep(forTimeInterval: 0.3) }
             t.set(!was); print("after toggle:", t.isEnabled)
             t.set(was); print("restored:", t.isEnabled)
         }

@@ -34,21 +34,46 @@ final class TouchController: ObservableObject {
         return UserDefaults(suiteName: suite)?.bool(forKey: key) ?? false
     }
 
+    private var watcher: Timer?
+
     init() { isEnabled = !Self.readDisabled() }
 
     /// Re-read the system value (the user may have changed it in System Settings).
-    func refresh() { isEnabled = !Self.readDisabled() }
+    func refresh() {
+        let value = !Self.readDisabled()
+        if value != isEnabled { isEnabled = value }
+    }
 
+    /// Keeps the switch in step with System Settings while the popover is open.
+    func startWatching() {
+        refresh()
+        guard watcher == nil else { return }
+        watcher = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refresh() }
+        }
+    }
+
+    func stopWatching() { watcher?.invalidate(); watcher = nil }
+
+    /// Sets an explicit state (never "flip what I last saw"), then checks that macOS applied it.
     func set(_ enabled: Bool) {
+        apply(enabled)
+        refresh()
+        if isEnabled != enabled {          // one retry after a fresh read
+            apply(enabled)
+            refresh()
+        }
+        error = isEnabled == enabled ? nil : "macOS didn\u{2019}t apply the change. Try System Settings \u{203A} Accessibility \u{203A} Touch."
+    }
+
+    private func apply(_ enabled: Bool) {
         if let m = Self.manager {
             m.set(m.obj, Self.setSel, !enabled)
         } else {
             let d = UserDefaults(suiteName: Self.suite)
             d?.set(!enabled, forKey: Self.key); d?.synchronize()
         }
-        refresh()
-        error = isEnabled == enabled ? nil : "macOS didn\u{2019}t apply the change. Try System Settings \u{203A} Touch."
     }
 
-    func toggle() { set(!isEnabled) }
+    func toggle() { refresh(); set(!isEnabled) }
 }
