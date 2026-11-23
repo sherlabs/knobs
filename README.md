@@ -11,7 +11,7 @@ live numbers, and switches for the little things macOS hides.
 - **At a glance:** CPU and GPU load, memory use, system power (or battery), and a CPU
   temperature status.
 - **Logo light:** switch the backlit Apple logo on or off (PROLED XDR MacBook Pro only).
-- **Touch input:** the same switch as System Settings > Touch (touch-display Macs only).
+- **Ignore touch gestures:** the same switch as System Settings > Accessibility > Touch (touch-display Macs only).
 - **Self-updating:** checks GitHub Releases, verifies the checksum and the developer signature,
   then replaces itself. Turn it off from the `...` menu.
 

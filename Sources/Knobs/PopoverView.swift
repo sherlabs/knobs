@@ -134,7 +134,7 @@ struct PopoverView: View {
                 }
                 if Capabilities.hasLogoLight && Capabilities.hasTouchDisplay { Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 0.5).padding(.leading, 42) }
                 if Capabilities.hasTouchDisplay {
-                    switchRow("hand.point.up.left.fill", "Touch Input", Binding(get: { touch.isEnabled }, set: { _ in touch.toggle() }))
+                    switchRow("hand.point.up.left.fill", "Ignore Touch Gestures", Binding(get: { !touch.isEnabled }, set: { _ in touch.toggle() }))
                 }
                 if let m = touch.error {
                     Text(m).font(.caption).foregroundStyle(Theme.warm).frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 12).padding(.bottom, 8)

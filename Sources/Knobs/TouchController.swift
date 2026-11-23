@@ -2,7 +2,7 @@ import Foundation
 import ObjectiveC
 import SwiftUI
 
-/// Mirrors the "Touch" pane in System Settings. That pane does not just write a preference: it asks
+/// Mirrors "Ignore Touch Gestures" in System Settings > Accessibility > Touch (on = gestures from touch displays and Sidecar are ignored). That pane does not just write a preference: it asks
 /// the system's `UASidecarTouchDisableManager`, which also tells the touch driver. Writing the
 /// preference alone changes nothing on screen, so this calls the same manager (a private API,
 /// looked up at run time; if it is ever missing the preference is written as a fallback).
