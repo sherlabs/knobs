@@ -37,7 +37,12 @@ final class Service: NSObject, KnobsHelperProtocol {
 
     func restoreAutoNow() { queue.sync { revertToAuto() } }
 
-    func version(reply: @escaping (String) -> Void) { reply(KnobsConstants.helperVersion) }
+    /// "<version>@<path of this helper>", so the app can tell a helper started from a different copy of itself.
+    func version(reply: @escaping (String) -> Void) {
+        var buf = [CChar](repeating: 0, count: 4096)
+        let n = proc_pidpath(getpid(), &buf, UInt32(buf.count))
+        reply("\(KnobsConstants.helperVersion)@" + (n > 0 ? String(cString: buf) : ""))
+    }
 
     func setFanFraction(_ fraction: Double, reply: @escaping (Bool) -> Void) {
         queue.async {

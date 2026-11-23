@@ -52,6 +52,29 @@ func import_diagnose() {
         do { try svc.register(); print("register: ok") } catch { print("register error:", error, (error as NSError).domain, (error as NSError).code) }
         print("status after:", svc.status.rawValue)
     }
+    if CommandLine.arguments.contains("--reregister") {
+        let sem = DispatchSemaphore(value: 0)
+        Task { try? await svc.unregister(); try? await Task.sleep(nanoseconds: 800_000_000); try? svc.register(); print("re-registered, status:", svc.status.rawValue); sem.signal() }
+        _ = sem.wait(timeout: .now() + 10)
+    }
+    if CommandLine.arguments.contains("--xpc-test") {
+        let c = NSXPCConnection(machServiceName: KnobsConstants.machService, options: .privileged)
+        c.remoteObjectInterface = NSXPCInterface(with: KnobsHelperProtocol.self)
+        if let req = Trust.requirement(identifier: KnobsConstants.helperIdentifier) { c.setCodeSigningRequirement(req) } else { print("no requirement") }
+        c.invalidationHandler = { print("connection invalidated") }
+        c.interruptionHandler = { print("connection interrupted") }
+        c.resume()
+        let p = c.remoteObjectProxyWithErrorHandler { print("xpc error:", $0) } as! KnobsHelperProtocol
+        let g = DispatchGroup()
+        g.enter(); p.version { print("helper version:", $0); g.leave() }
+        _ = g.wait(timeout: .now() + 4)
+        let g2 = DispatchGroup()
+        g2.enter(); p.setFanFraction(0.3) { print("setFanFraction(0.3):", $0); g2.leave() }
+        _ = g2.wait(timeout: .now() + 4)
+        let g3 = DispatchGroup()
+        g3.enter(); p.setAuto { print("setAuto:", $0); g3.leave() }
+        _ = g3.wait(timeout: .now() + 4)
+    }
     print("plist exists:", FileManager.default.fileExists(atPath: Bundle.main.bundlePath + "/Contents/Library/LaunchDaemons/" + KnobsConstants.helperPlist))
     exit(0)
 }

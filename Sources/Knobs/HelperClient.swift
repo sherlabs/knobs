@@ -58,6 +58,8 @@ final class HelperClient: ObservableObject {
         }
     }
 
+    private var healing = false
+
     private func watchForApproval() {
         guard approvalTimer == nil else { return }
         approvalTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] t in
@@ -84,10 +86,19 @@ final class HelperClient: ObservableObject {
 
     /// After an app update the old helper may still be running; replace it.
     private func ensureCurrent() async {
-        guard let v = await version(), v != KnobsConstants.helperVersion else { return }
+        let v = await version()
+        // Healthy and current: nothing to do. A helper that is enabled but does not answer is a stale
+        // job (for example one started from a replaced or moved copy of the app), so re-register it
+        // from this copy of the app.
+        let expected = KnobsConstants.helperVersion + "@" + Bundle.main.bundlePath + "/Contents/MacOS/knobs-helper"
+        if let v, v == expected { return }
+        guard !healing else { return }
+        healing = true
         connection?.invalidate(); connection = nil
         try? await service.unregister()
+        try? await Task.sleep(nanoseconds: 800_000_000)
         try? service.register()
+        healing = false
         refresh()
     }
 
